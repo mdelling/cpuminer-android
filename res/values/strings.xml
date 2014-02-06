@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">CPUMiner</string>
+    <string name="action_settings">Settings</string>
+    <string name="pref_title">CPUMiner Preferences</string>
+    <string name="pref_server">Server</string>
+    <string name="pref_port">Port</string>
+    <string name="pref_username">Username</string>
+    <string name="pref_password">Password</string>
+    <string name="pref_algorithm">Algorithm</string>
+    <string name="button_start">Start Mining</string>
+    <string name="button_stop">Stop Mining</string>
+    <string name="button_clear">Clear Log</string>
+    
+</resources>

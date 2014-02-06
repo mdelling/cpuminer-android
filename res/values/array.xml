@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="pref_algorithm_entries">
+    	<item>SHA256</item>
+    	<item>scrypt</item>
+	</string-array>
+
+    <string-array name="pref_algorithm_values">
+    	<item>sha256d</item>
+    	<item>scrypt</item>
+	</string-array>
+    
+</resources>
