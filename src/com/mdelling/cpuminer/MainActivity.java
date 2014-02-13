@@ -110,13 +110,18 @@ public class MainActivity extends Activity {
 	private void updateButtons()
 	{
 		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
-		if (app.getWorker() == null) {
+		// The logger thread should stop immediately when we hit stop
+		if (app.getLogger() == null)
+			this.stopButton.setEnabled(false);
+		else
+			this.stopButton.setEnabled(true);
+
+		// The worker thread however, may take a while to exit
+		// We don't want to allow the user to start until it is finished
+		if (app.getWorker() == null)
 		    this.startButton.setEnabled(true);
-		    this.stopButton.setEnabled(false);
-		} else {
+		else
 		    this.startButton.setEnabled(false);
-		    this.stopButton.setEnabled(true);
-		}
 	}
 
 	private void startMining() {
@@ -148,6 +153,7 @@ public class MainActivity extends Activity {
 	    		// Release wakelock
 	    		log("Stopped miner");
 	    		wakeLock.release();
+	    		updateButtons();
 	        }
 	    });
 	    app.startWorker(worker);
@@ -160,18 +166,23 @@ public class MainActivity extends Activity {
 	    		while (true) {
 	    			try {
 	    				Thread.sleep(60000);
-	    				CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
-	    				MainActivity activity = (MainActivity)app.getCurrentActivity();
+	    				//CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
+	    				//MainActivity activity = (MainActivity)app.getCurrentActivity();
+
+	    				// Get the date
 	    				Date today = Calendar.getInstance().getTime();
 	    				String reportDate = df.format(today);
+
+	    				// Get the hash rate
+	    				double hashRate = 0;
+	    				for (int i = 0; i < getThreads(); i++)
+	    					hashRate += ((double)getHashRate(i)) / 1000;
+    					String hashRateString = String.format(Locale.getDefault(), "%.2f khash/s", hashRate);
+
+	    				// Get the block statistics
 	    				long accepted = getAccepted();
 	    				long total = accepted + getRejected();
-	    				activity.log(reportDate + ": " + accepted + "/" + total + " Blocks accepted");
-	    				for (int i = 0; i < getThreads(); i++) {
-	    					double hashRate = ((double)getHashRate(i)) / 1000;
-	    					String hashRateString = String.format(Locale.getDefault(), "%.2f", hashRate);
-	    					activity.log(reportDate + ":     Thread " + i + " - " + hashRateString + " khash/s");
-	    				}
+	    				log(reportDate + ": " + getThreads() + " threads - " + hashRateString + " (" + accepted + "/" + total + " Blocks accepted)");
 	    			} catch (InterruptedException exp) {
 	    				break;
 	    			}
@@ -186,9 +197,26 @@ public class MainActivity extends Activity {
 
 	private void stopMining() {
 		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
+		log("Stopping miner");
+
+		// Stop the worker threads and wait asynchronously - this may take a bit
 		stopMiner();
+		new Thread(new Runnable() {
+		    @Override
+			public void run() {
+				CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
+		    	app.stopWorker();
+		    	mHandler.post(new Runnable() {
+		    		@Override
+					public void run() {
+		    			updateButtons();
+		    		}
+		    	});
+		    }
+		}).start();
+
+		// Stop the logger thread and wait synchronously - this should be short
 		app.getLogger().interrupt();
-		app.stopWorker();
 		app.stopLogger();
 	    this.updateButtons();
 	}

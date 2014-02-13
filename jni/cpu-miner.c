@@ -1288,7 +1288,10 @@ int cpuminer_start(int argc, char *argv[])
 	long flags;
 	int i;
 
-	workio_thread_ok = true;
+	/* Wait for any previous instances to exit */
+	while (!workio_thread_ok)
+		sleep(1);
+
 	rpc_user = strdup("");
 	rpc_pass = strdup("");
 
@@ -1449,11 +1452,28 @@ int cpuminer_start(int argc, char *argv[])
 		opt_n_threads,
 		algo_names[opt_algo]);
 
-	/* main loop - simply wait for workio thread to exit */
+	/* main loop - wait for workio thread to exit */
+	applog(LOG_INFO, "Waiting for workio thread");
 	pthread_join(thr_info[work_thr_id].pth, NULL);
 
-	applog(LOG_INFO, "workio thread dead, exiting.");
+	/* Wait for the stratum/longpoll threads to exit */
+	applog(LOG_INFO, "Waiting for network thread");
+	if (longpoll_thr_id != -1)
+		pthread_join(thr_info[longpoll_thr_id].pth, NULL);
+	if (stratum_thr_id != -1)
+		pthread_join(thr_info[stratum_thr_id].pth, NULL);
 
+	/* Wait for the worker threads to exit */
+	applog(LOG_INFO, "Waiting for worker thread(s)");
+	for (i = 0; i < opt_n_threads; i++) {
+		thr = &thr_info[i];
+		pthread_join(thr->pth, NULL);
+	}
+
+
+	/* Mark that the next instance can start, and continue */
+	applog(LOG_INFO, "All threads ended. Exiting.");
+	workio_thread_ok = true;
 	return 0;
 }
 
