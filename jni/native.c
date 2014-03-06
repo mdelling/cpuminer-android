@@ -10,7 +10,7 @@
 #include <android/log.h>
 #define DEBUG_TAG "CPUMiner_NativeLauncher"
 
-void Java_com_mdelling_cpuminer_MainActivity_startMiner(JNIEnv * env, jobject this, jint number, jstring parameters)
+jint Java_com_mdelling_cpuminer_MainActivity_startMiner(JNIEnv * env, jobject this, jint number, jstring parameters)
 {
 	jboolean isCopy;
 	const char * szParameters = (*env)->GetStringUTFChars(env, parameters, &isCopy);
@@ -24,9 +24,10 @@ void Java_com_mdelling_cpuminer_MainActivity_startMiner(JNIEnv * env, jobject th
 		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "NDK: [%d: %s]", count - 1, argv[count - 1]);
 	    tok = strtok (NULL, " ");
 	}
-	cpuminer_start(number, argv);
+	int retval = cpuminer_start(number, argv);
 	free(argv);
 	(*env)->ReleaseStringUTFChars(env, parameters, szParameters);
+	return retval;
 }
 
 void Java_com_mdelling_cpuminer_MainActivity_stopMiner(JNIEnv * env, jobject this)

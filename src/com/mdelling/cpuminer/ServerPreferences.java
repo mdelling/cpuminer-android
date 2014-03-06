@@ -41,6 +41,8 @@ public class ServerPreferences extends PreferenceFragment implements OnSharedPre
 	}
 
 	public void loadPreferences(SharedPreferences prefs) {
+		ListPreference protocol = (ListPreference)findPreference("pref_protocol");
+		protocol.setSummary(prefs.getString("pref_protocol", ""));
 		EditTextPreference server = (EditTextPreference)findPreference("pref_server");
 		server.setSummary(prefs.getString("pref_server", ""));
 		EditTextPreference port = (EditTextPreference)findPreference("pref_port");

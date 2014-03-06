@@ -1,14 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string-array name="pref_algorithm_entries">
-    	<item>SHA256</item>
-    	<item>scrypt</item>
+	<string-array name="pref_algorithm_entries">
+		<item>SHA256</item>
+		<item>scrypt</item>
 	</string-array>
 
-    <string-array name="pref_algorithm_values">
-    	<item>sha256d</item>
-    	<item>scrypt</item>
+	<string-array name="pref_algorithm_values">
+		<item>sha256d</item>
+		<item>scrypt</item>
 	</string-array>
-    
+
+	<string-array name="pref_protocol_entries">
+		<item>Stratum</item>
+		<item>HTTP</item>
+	</string-array>
+
+	<string-array name="pref_protocol_values">
+		<item>stratum+tcp://</item>
+		<item>http://</item>
+	</string-array>
+
 </resources>

@@ -27,7 +27,7 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity {
 
-	private native void startMiner(int number, String parameters);
+	private native int startMiner(int number, String parameters);
 	private native void stopMiner();
 	private native long getAccepted();
 	private native long getRejected();
@@ -141,6 +141,7 @@ public class MainActivity extends Activity {
 	    		// Get the current settings
 	        	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
 	    		String algorithm = prefs.getString("pref_algorithm", "");
+	    		String protocol = prefs.getString("pref_protocol", "");
 	    		String server = prefs.getString("pref_server", "");
 	    		String port = prefs.getString("pref_port", "");
 	    		String username = prefs.getString("pref_username", "");
@@ -148,7 +149,9 @@ public class MainActivity extends Activity {
 
 	    		// Start mining
 	    		log("Starting miner");
-	    		startMiner(7, "minerd -a " + algorithm + " -o " + server + ":" + port + " -O " + username + ":" + password);
+	    		int retval = startMiner(7, "minerd -a " + algorithm + " -o " + protocol + server + ":" + port + " -O " + username + ":" + password);
+	    		if (retval != 0)
+	    			log("Configuration error");
 
 	    		// Release wakelock
 	    		log("Stopped miner");
@@ -165,9 +168,8 @@ public class MainActivity extends Activity {
 	    		Format df = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss", Locale.getDefault());
 	    		while (true) {
 	    			try {
+	    				// Sleep for a bit
 	    				Thread.sleep(60000);
-	    				//CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
-	    				//MainActivity activity = (MainActivity)app.getCurrentActivity();
 
 	    				// Get the date
 	    				Date today = Calendar.getInstance().getTime();
