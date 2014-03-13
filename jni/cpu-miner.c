@@ -14,6 +14,7 @@
 #include "cpuminer-config.h"
 #define _GNU_SOURCE
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -143,8 +144,6 @@ static int opt_retries = -1;
 static int opt_fail_pause = 30;
 int opt_timeout = 270;
 static int opt_scantime = 5;
-static json_t *opt_config;
-static const bool opt_time = true;
 static enum sha256_algos opt_algo = ALGO_SCRYPT;
 static int opt_n_threads;
 static int num_processors;
@@ -214,9 +213,6 @@ Options:\n\
 #endif
 "\
       --benchmark       run in offline benchmark mode\n\
-  -c, --config=FILE     load a JSON-format configuration file\n\
-  -V, --version         display version information and exit\n\
-  -h, --help            display this help text and exit\n\
 ";
 
 static char const short_options[] =
@@ -226,38 +222,7 @@ static char const short_options[] =
 #ifdef HAVE_SYSLOG_H
 	"S"
 #endif
-	"a:c:Dhp:Px:qr:R:s:t:T:o:u:O:V";
-
-static struct option const options[] = {
-	{ "algo", 1, NULL, 'a' },
-#ifndef WIN32
-	{ "background", 0, NULL, 'B' },
-#endif
-	{ "benchmark", 0, NULL, 1005 },
-	{ "cert", 1, NULL, 1001 },
-	{ "config", 1, NULL, 'c' },
-	{ "debug", 0, NULL, 'D' },
-	{ "help", 0, NULL, 'h' },
-	{ "no-longpoll", 0, NULL, 1003 },
-	{ "no-stratum", 0, NULL, 1007 },
-	{ "pass", 1, NULL, 'p' },
-	{ "protocol-dump", 0, NULL, 'P' },
-	{ "proxy", 1, NULL, 'x' },
-	{ "quiet", 0, NULL, 'q' },
-	{ "retries", 1, NULL, 'r' },
-	{ "retry-pause", 1, NULL, 'R' },
-	{ "scantime", 1, NULL, 's' },
-#ifdef HAVE_SYSLOG_H
-	{ "syslog", 0, NULL, 'S' },
-#endif
-	{ "threads", 1, NULL, 't' },
-	{ "timeout", 1, NULL, 'T' },
-	{ "url", 1, NULL, 'o' },
-	{ "user", 1, NULL, 'u' },
-	{ "userpass", 1, NULL, 'O' },
-	{ "version", 0, NULL, 'V' },
-	{ 0, 0, 0, 0 }
-};
+	"a:Dp:Px:qr:R:s:t:T:o:u:O:";
 
 struct work {
 	uint32_t data[32];
@@ -1017,22 +982,7 @@ out:
 	return NULL;
 }
 
-static void show_version_and_exit(void)
-{
-	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "%s\n%s\n", PACKAGE_STRING, curl_version());
-	exit(0);
-}
-
-static void show_usage_and_exit(int status)
-{
-	if (status)
-		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Try `" PROGRAM_NAME " --help' for more information.\n");
-	else
-		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, usage);
-	exit(status);
-}
-
-static void parse_arg (int key, char *arg)
+static int parse_arg(int key, char *arg)
 {
 	char *p;
 	int v, i;
@@ -1047,26 +997,11 @@ static void parse_arg (int key, char *arg)
 			}
 		}
 		if (i == ARRAY_SIZE(algo_names))
-			show_usage_and_exit(1);
+			applog(LOG_INFO, "Invalid algorithm: %s", arg);
 		break;
 	case 'B':
 		opt_background = true;
 		break;
-	case 'c': {
-		json_error_t err;
-		if (opt_config)
-			json_decref(opt_config);
-#if JANSSON_VERSION_HEX >= 0x020000
-		opt_config = json_load_file(arg, 0, &err);
-#else
-		opt_config = json_load_file(arg, &err);
-#endif
-		if (!json_is_object(opt_config)) {
-			applog(LOG_ERR, "JSON decode of %s failed", arg);
-			exit(1);
-		}
-		break;
-	}
 	case 'q':
 		opt_quiet = true;
 		break;
@@ -1082,33 +1017,38 @@ static void parse_arg (int key, char *arg)
 		break;
 	case 'r':
 		v = atoi(arg);
-		if (v < -1 || v > 9999)	/* sanity check */
-			show_usage_and_exit(1);
-		opt_retries = v;
+		if (v >= -1 && v <= 9999)	/* sanity check */
+			opt_retries = v;
+		else
+			applog(LOG_INFO, "Invalid retry value: %d", v);
 		break;
 	case 'R':
 		v = atoi(arg);
-		if (v < 1 || v > 9999)	/* sanity check */
-			show_usage_and_exit(1);
-		opt_fail_pause = v;
+		if (v >= 1 && v <= 9999)	/* sanity check */
+			opt_fail_pause = v;
+		else
+			applog(LOG_INFO, "Invalid retry pause value: %d", v);
 		break;
 	case 's':
 		v = atoi(arg);
-		if (v < 1 || v > 9999)	/* sanity check */
-			show_usage_and_exit(1);
-		opt_scantime = v;
+		if (v >= 1 && v <= 9999)	/* sanity check */
+			opt_scantime = v;
+		else
+			applog(LOG_INFO, "Invalid scantime value: %d", v);
 		break;
 	case 'T':
 		v = atoi(arg);
-		if (v < 1 || v > 99999)	/* sanity check */
-			show_usage_and_exit(1);
-		opt_timeout = v;
+		if (v >= 1 && v <= 99999)	/* sanity check */
+			opt_timeout = v;
+		else
+			applog(LOG_INFO, "Invalid timeout value: %d", v);
 		break;
 	case 't':
 		v = atoi(arg);
-		if (v < 1 || v > 9999)	/* sanity check */
-			show_usage_and_exit(1);
-		opt_n_threads = v;
+		if (v >= 1 && v <= 9999)	/* sanity check */
+			opt_n_threads = v;
+		else
+			applog(LOG_INFO, "Invalid threads value: %d", v);
 		break;
 	case 'u':
 		free(rpc_user);
@@ -1118,13 +1058,17 @@ static void parse_arg (int key, char *arg)
 		p = strstr(arg, "://");
 		if (p) {
 			if (strncasecmp(arg, "http://", 7) && strncasecmp(arg, "https://", 8) &&
-					strncasecmp(arg, "stratum+tcp://", 14))
-				show_usage_and_exit(1);
+					strncasecmp(arg, "stratum+tcp://", 14)) {
+				applog(LOG_INFO, "Invalid URL value: %s", arg);
+				return 1;
+			}
 			free(rpc_url);
 			rpc_url = strdup(arg);
 		} else {
-			if (!strlen(arg) || *arg == '/')
-				show_usage_and_exit(1);
+			if (!strlen(arg) || *arg == '/') {
+				applog(LOG_INFO, "Invalid URL value: %s", arg);
+				return 1;
+			}
 			free(rpc_url);
 			rpc_url = malloc(strlen(arg) + 8);
 			sprintf(rpc_url, "http://%s", arg);
@@ -1153,8 +1097,10 @@ static void parse_arg (int key, char *arg)
 		break;
 	case 'O':			/* --userpass */
 		p = strchr(arg, ':');
-		if (!p)
-			show_usage_and_exit(1);
+		if (!p) {
+			applog(LOG_INFO, "Invalid user/pass value: %s", arg);
+			return 1;
+		}
 		free(rpc_userpass);
 		rpc_userpass = strdup(arg);
 		free(rpc_user);
@@ -1198,50 +1144,19 @@ static void parse_arg (int key, char *arg)
 	case 'S':
 		use_syslog = true;
 		break;
-	case 'V':
-		show_version_and_exit();
-	case 'h':
-		show_usage_and_exit(0);
 	default:
-		show_usage_and_exit(1);
+		break;
 	}
+
+	return 0;
 }
 
-static void parse_config(void)
-{
-	int i;
-	json_t *val;
-
-	if (!json_is_object(opt_config))
-		return;
-
-	for (i = 0; i < ARRAY_SIZE(options); i++) {
-		if (!options[i].name)
-			break;
-		if (!strcmp(options[i].name, "config"))
-			continue;
-
-		val = json_object_get(opt_config, options[i].name);
-		if (!val)
-			continue;
-
-		if (options[i].has_arg && json_is_string(val)) {
-			char *s = strdup(json_string_value(val));
-			if (!s)
-				break;
-			parse_arg(options[i].val, s);
-			free(s);
-		} else if (!options[i].has_arg && json_is_true(val))
-			parse_arg(options[i].val, "");
-		else
-			applog(LOG_ERR, "JSON option %s invalid",
-				options[i].name);
-	}
-}
-
-static void parse_cmdline(int argc, char *argv[])
+static int parse_cmdline(int argc, char *argv[])
 {
 	int key;
+
+	// Reset getopts, since we may have already called this
+	optind = 1;
 
 	while (1) {
 #if HAVE_GETOPT_LONG
@@ -1252,15 +1167,16 @@ static void parse_cmdline(int argc, char *argv[])
 		if (key < 0)
 			break;
 
-		parse_arg(key, optarg);
+		if (parse_arg(key, optarg))
+			return 1;
 	}
 	if (optind < argc) {
-		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "%s: unsupported non-option argument '%s'\n",
+		applog(LOG_INFO, "%s: unsupported non-option argument '%s'\n",
 			argv[0], argv[optind]);
-		show_usage_and_exit(1);
+		return 1;
 	}
 
-	parse_config();
+	return 0;
 }
 
 #ifndef WIN32
@@ -1296,14 +1212,15 @@ int cpuminer_start(int argc, char *argv[])
 	rpc_pass = strdup("");
 
 	/* parse command line */
-	parse_cmdline(argc, argv);
+	if (parse_cmdline(argc, argv))
+		return 1;
 
 	if (!opt_benchmark && !rpc_url) {
-		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "%s: no URL supplied\n", argv[0]);
-		show_usage_and_exit(1);
+		applog(LOG_INFO, "%s: no URL supplied\n", argv[0]);
+		return 1;
 	}
 
-	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Parsing user string");
+	applog(LOG_INFO, "Parsing user string");
 	if (!rpc_userpass) {
 		rpc_userpass = malloc(strlen(rpc_user) + strlen(rpc_pass) + 2);
 		if (!rpc_userpass)
@@ -1311,7 +1228,7 @@ int cpuminer_start(int argc, char *argv[])
 		sprintf(rpc_userpass, "%s:%s", rpc_user, rpc_pass);
 	}
 
-	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Creating locks");
+	applog(LOG_INFO, "Creating locks");
 	pthread_mutex_init(&applog_lock, NULL);
 	pthread_mutex_init(&stats_lock, NULL);
 	pthread_mutex_init(&g_work_lock, NULL);
@@ -1365,7 +1282,7 @@ int cpuminer_start(int argc, char *argv[])
 	if (use_syslog)
 		openlog("cpuminer", LOG_PID, LOG_USER);
 #endif
-	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Using %d processors", num_processors);
+	applog(LOG_INFO, "Using %d processors", num_processors);
 
 	work_restart = calloc(opt_n_threads, sizeof(*work_restart));
 	if (!work_restart)
@@ -1380,7 +1297,7 @@ int cpuminer_start(int argc, char *argv[])
 		return 1;
 
 	/* init workio thread info */
-	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Initializing thread information");
+	applog(LOG_INFO, "Initializing thread information");
 	work_thr_id = opt_n_threads;
 	thr = &thr_info[work_thr_id];
 	thr->id = work_thr_id;
@@ -1389,14 +1306,14 @@ int cpuminer_start(int argc, char *argv[])
 		return 1;
 
 	/* start work I/O thread */
-	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Starting I/O thread");
+	applog(LOG_INFO, "Starting I/O thread");
 	if (pthread_create(&thr->pth, NULL, workio_thread, thr)) {
 		applog(LOG_ERR, "workio thread create failed");
 		return 1;
 	}
 
 	if (want_longpoll && !have_stratum) {
-		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Starting longpoll");
+		applog(LOG_INFO, "Starting longpoll");
 		/* init longpoll thread info */
 		longpoll_thr_id = opt_n_threads + 1;
 		thr = &thr_info[longpoll_thr_id];
@@ -1412,7 +1329,7 @@ int cpuminer_start(int argc, char *argv[])
 		}
 	}
 	if (want_stratum) {
-		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Starting stratum");
+		applog(LOG_INFO, "Starting stratum");
 		/* init stratum thread info */
 		stratum_thr_id = opt_n_threads + 2;
 		thr = &thr_info[stratum_thr_id];
@@ -1432,7 +1349,7 @@ int cpuminer_start(int argc, char *argv[])
 	}
 
 	/* start mining threads */
-	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Starting mining threads");
+	applog(LOG_INFO, "Starting mining threads");
 	for (i = 0; i < opt_n_threads; i++) {
 		thr = &thr_info[i];
 
@@ -1470,6 +1387,21 @@ int cpuminer_start(int argc, char *argv[])
 		pthread_join(thr->pth, NULL);
 	}
 
+	/* Cleanup memory */
+	free(work_restart);
+	work_restart = NULL;
+	free(thr_info);
+	thr_info = NULL;
+	free(thr_info);
+	thr_info = NULL;
+	free(rpc_url);
+	rpc_url = NULL;
+	free(rpc_userpass);
+	rpc_userpass = NULL;
+	free(rpc_user);
+	rpc_user = NULL;
+	free(rpc_pass);
+	rpc_pass = NULL;
 
 	/* Mark that the next instance can start, and continue */
 	applog(LOG_INFO, "All threads ended. Exiting.");
@@ -1480,7 +1412,8 @@ int cpuminer_start(int argc, char *argv[])
 void stop_miner()
 {
 	workio_thread_ok = false;
-	tq_push(thr_info[work_thr_id].q, NULL);
+	if (thr_info)
+		tq_push(thr_info[work_thr_id].q, NULL);
 }
 
 long get_accepted()
