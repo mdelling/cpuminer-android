@@ -3,7 +3,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE    := curl
-LOCAL_SRC_FILES := libcurl.so
+LOCAL_SRC_FILES := $(TARGET_ARCH_ABI)/libcurl.so
 
 include $(PREBUILT_SHARED_LIBRARY)
 
