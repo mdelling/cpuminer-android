@@ -11,7 +11,9 @@ can be built using the make-standalone-toolchain.sh script in build/tools.
 Here I'm going to assume we're putting the standalone toolchain in /opt/.
 
 	# Setup destination directory
-	sudo mkdir -p /opt/android-ndk-r9d
+	sudo mkdir -p /opt/android-ndk-r9d/arm/
+	sudo mkdir -p /opt/android-ndk-r9d/mips/
+	sudo mkdir -p /opt/android-ndk-r9d/x86/
 
 	# Get Android NDK
 	curl -O http://dl.google.com/android/ndk/android-ndk-r9d-darwin-x86_64.tar.bz2
@@ -20,7 +22,9 @@ Here I'm going to assume we're putting the standalone toolchain in /opt/.
 
 	# Build standalone NDK
 	cd build/tools
-	sudo ./make-standalone-toolchain.sh --ndk-dir=../../ --install-dir=/opt/android-ndk-r9d/ --verbose --system=darwin-x86_64
+	sudo ./make-standalone-toolchain.sh --ndk-dir=../../ --install-dir=/opt/android-ndk-r9d/arm/ --verbose --system=darwin-x86_64
+	sudo ./make-standalone-toolchain.sh --arch=mips --ndk-dir=../../ --install-dir=/opt/android-ndk-r9d/mips/ --verbose --system=darwin-x86_64
+	sudo ./make-standalone-toolchain.sh --arch=x86 --ndk-dir=../../ --install-dir=/opt/android-ndk-r9d/x86/ --verbose --system=darwin-x86_64
 
 Once you have the standalone NDK toolchain, you need to download and extract
 the source for libcurl.
