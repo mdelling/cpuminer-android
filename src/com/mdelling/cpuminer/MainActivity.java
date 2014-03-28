@@ -56,7 +56,6 @@ public class MainActivity extends Activity {
 		// Initialize the start/stop buttons
 		this.startButton = (Button)this.findViewById(R.id.start_button);
 		this.stopButton = (Button)this.findViewById(R.id.stop_button);
-		this.updateButtons();
 
 		this.startButton.setOnClickListener(new OnClickListener() {
 			@Override
@@ -85,6 +84,9 @@ public class MainActivity extends Activity {
 
 		// Create handle for logging
 		mHandler = new Handler();
+
+		// This may log, so we can't do it before we create the handler
+		this.updateButtons();
 	}
 
 	@Override
@@ -107,21 +109,40 @@ public class MainActivity extends Activity {
 	    return true;
 	}
 
+	@Override
+	public void onWindowFocusChanged(boolean hasFocus) {
+		super.onWindowFocusChanged(hasFocus);
+		if (hasFocus)
+			this.updateButtons();
+	}
+
 	private void updateButtons()
 	{
 		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
+    	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		String server = prefs.getString("pref_server", "");
+		String port = prefs.getString("pref_port", "");
+		String username = prefs.getString("pref_username", "");
+		String password = prefs.getString("pref_password", "");
+
 		// The logger thread should stop immediately when we hit stop
 		if (app.getLogger() == null)
 			this.stopButton.setEnabled(false);
 		else
 			this.stopButton.setEnabled(true);
 
+		// Don't attempt to start if we're missing configurations
 		// The worker thread however, may take a while to exit
-		// We don't want to allow the user to start until it is finished
-		if (app.getWorker() == null)
-		    this.startButton.setEnabled(true);
-		else
+		// We don't want to allow the user to restart until it is finished
+		if (app.getWorker() != null)
+			this.startButton.setEnabled(false);
+		else if (server.length() > 0 && port.length() > 0 && username.length() > 0 && password.length() > 0)
+			this.startButton.setEnabled(true);
+		else {
+			if (this.startButton.isEnabled())
+				log("Configuration required");
 		    this.startButton.setEnabled(false);
+		}
 	}
 
 	private void startMining() {
