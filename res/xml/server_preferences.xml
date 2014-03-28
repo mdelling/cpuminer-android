@@ -5,7 +5,8 @@
 
 		<EditTextPreference
 			android:key="pref_server"
-			android:title="@string/pref_server" />
+			android:title="@string/pref_server"
+			android:inputType="textFilter" />
 
 		<EditTextPreference
 			android:key="pref_port"
@@ -21,11 +22,13 @@
 
 		<EditTextPreference
 			android:key="pref_username"
-			android:title="@string/pref_username" />
+			android:title="@string/pref_username"
+			android:inputType="textFilter" />
 
 		<EditTextPreference
 			android:key="pref_password"
-			android:title="@string/pref_password" />
+			android:title="@string/pref_password"
+			android:inputType="textFilter" />
 
 		<ListPreference
 			android:key="pref_algorithm"
