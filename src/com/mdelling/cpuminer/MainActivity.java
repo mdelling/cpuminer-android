@@ -32,7 +32,7 @@ public class MainActivity extends Activity {
 	private native long getAccepted();
 	private native long getRejected();
 	private native int getThreads();
-	private native int getHashRate(int cpu);
+	private native double getHashRate(int cpu);
 	private Button startButton;
 	private Button stopButton;
 	private Button clearButton;
@@ -199,7 +199,7 @@ public class MainActivity extends Activity {
 	    				// Get the hash rate
 	    				double hashRate = 0;
 	    				for (int i = 0; i < getThreads(); i++)
-	    					hashRate += ((double)getHashRate(i)) / 1000;
+	    					hashRate += getHashRate(i) / 1000;
     					String hashRateString = String.format(Locale.getDefault(), "%.2f khash/s", hashRate);
 
 	    				// Get the block statistics

@@ -1417,15 +1417,11 @@ int get_threads()
 	return opt_n_threads;
 }
 
-int get_hash_rate(int cpu)
+//int get_hash_rate(int cpu)
+double get_hash_rate(int cpu)
 {
 	if (cpu > opt_n_threads - 1)
-		return 0;
+		return 0.;
 
-	pthread_mutex_lock(&stats_lock);
-	double tmp_hashrate = thr_hashrates[cpu];
-	pthread_mutex_unlock(&stats_lock);
-
-	// Returning double doesn't work nicely
-	return (int)floor(tmp_hashrate);
+	return thr_hashrates[cpu];
 }

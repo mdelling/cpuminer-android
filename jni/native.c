@@ -35,22 +35,26 @@ void Java_com_mdelling_cpuminer_MainActivity_stopMiner(JNIEnv * env, jobject thi
 	stop_miner();
 }
 
+extern long get_accepted(void);
 jlong Java_com_mdelling_cpuminer_MainActivity_getAccepted(JNIEnv * env, jobject this)
 {
 	return get_accepted();
 }
 
+extern long get_rejected(void);
 jlong Java_com_mdelling_cpuminer_MainActivity_getRejected(JNIEnv * env, jobject this)
 {
 	return get_rejected();
 }
 
+extern int get_threads(void);
 jint Java_com_mdelling_cpuminer_MainActivity_getThreads(JNIEnv * env, jobject this)
 {
 	return get_threads();
 }
 
-jint Java_com_mdelling_cpuminer_MainActivity_getHashRate(JNIEnv * env, jobject this, jint cpu)
+extern double get_hash_rate(int cpu);
+jdouble Java_com_mdelling_cpuminer_MainActivity_getHashRate(JNIEnv * env, jobject this, jint cpu)
 {
 	return get_hash_rate(cpu);
 }
