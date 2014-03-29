@@ -60,28 +60,14 @@ static inline void drop_policy(void)
 #endif
 }
 
-#include <sys/syscall.h>
-#include <unistd.h>
-static void set_affinity(int mask)
-{
-    int err, syscallres;
-    pid_t pid = gettid();
-    syscallres = syscall(__NR_sched_setaffinity, pid, sizeof(mask), &mask);
-    if (syscallres)
-    {
-        err = errno;
-        applog(LOG_ERR, "Error in the syscall setaffinity: mask=%d=0x%x err=%d=0x%x", mask, mask, err, err);
-    }
-}
-
 static inline void affine_to_cpu(int id, int cpu)
 {
-//	cpu_set_t set;
+	cpu_set_t set;
+	CPU_ZERO(&set);
+	CPU_SET(cpu, &set);
 
-//	CPU_ZERO(&set);
-//	CPU_SET(cpu, &set);
-	set_affinity(1 << cpu);
-//	sched_setaffinity(0, sizeof(&set), &set);
+    if (sched_setaffinity(gettid(), sizeof(set), &set))
+        applog(LOG_ERR, "Error in the syscall setaffinity: mask=%d=0x%x err=%d=0x%x", set, set, errno, errno);
 }
 #elif defined(__FreeBSD__) /* FreeBSD specific policy and affinity management */
 #include <sys/cpuset.h>
