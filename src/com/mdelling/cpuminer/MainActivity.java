@@ -1,21 +1,17 @@
 package com.mdelling.cpuminer;
 
-import java.text.Format;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Locale;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.preference.PreferenceManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.text.Layout;
 import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
@@ -29,15 +25,12 @@ public class MainActivity extends Activity {
 
 	private native int startMiner(int number, String parameters);
 	private native void stopMiner();
-	private native long getAccepted();
-	private native long getRejected();
-	private native int getThreads();
-	private native double getHashRate(int cpu);
 	private Button startButton;
 	private Button stopButton;
 	private Button clearButton;
 	private TextView logView;
-    private Handler mHandler;
+	private Handler mHandler;
+	private LogReceiver logReceiver;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -82,8 +75,13 @@ public class MainActivity extends Activity {
 		    }
 		  });
 
+		// Register for logging messages
+		IntentFilter logIntentFilter = new IntentFilter("com.mdelling.cpuminer.logMessage");
+		this.logReceiver = new LogReceiver(this);
+		LocalBroadcastManager.getInstance(this).registerReceiver(logReceiver, logIntentFilter);
+
 		// Create handle for logging
-		mHandler = new Handler();
+		this.mHandler = new Handler();
 
 		// This may log, so we can't do it before we create the handler
 		this.updateButtons();
@@ -126,10 +124,10 @@ public class MainActivity extends Activity {
 		String password = prefs.getString("pref_password", "");
 
 		// The logger thread should stop immediately when we hit stop
-		if (app.getLogger() == null)
-			this.stopButton.setEnabled(false);
-		else
+		if (app.hasLogger())
 			this.stopButton.setEnabled(true);
+		else
+			this.stopButton.setEnabled(false);
 
 		// Don't attempt to start if we're missing configurations
 		// The worker thread however, may take a while to exit
@@ -183,36 +181,7 @@ public class MainActivity extends Activity {
 	    app.startWorker(worker);
 
 	    // Create and start the log update thread
-	    Thread logger = new Thread(new Runnable() {
-	    	@Override
-	    	public void run() {
-	    		Format df = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss", Locale.getDefault());
-	    		while (true) {
-	    			try {
-	    				// Sleep for a bit
-	    				Thread.sleep(60000);
-
-	    				// Get the date
-	    				Date today = Calendar.getInstance().getTime();
-	    				String reportDate = df.format(today);
-
-	    				// Get the hash rate
-	    				double hashRate = 0;
-	    				for (int i = 0; i < getThreads(); i++)
-	    					hashRate += getHashRate(i) / 1000;
-    					String hashRateString = String.format(Locale.getDefault(), "%.2f khash/s", hashRate);
-
-	    				// Get the block statistics
-	    				long accepted = getAccepted();
-	    				long total = accepted + getRejected();
-	    				log(reportDate + ": " + getThreads() + " threads - " + hashRateString + " (" + accepted + "/" + total + " Blocks accepted)");
-	    			} catch (InterruptedException exp) {
-	    				break;
-	    			}
-	    		}
-	    	}
-	    });
-	    app.startLogger(logger);
+	    app.startLogger();
 
 	    // Update the buttons
 	    this.updateButtons();
@@ -239,12 +208,11 @@ public class MainActivity extends Activity {
 		}).start();
 
 		// Stop the logger thread and wait synchronously - this should be short
-		app.getLogger().interrupt();
 		app.stopLogger();
-	    this.updateButtons();
+		this.updateButtons();
 	}
 
-	private void log(String message)
+	protected void log(String message)
 	{
 		final String m = message;
         mHandler.post(new Runnable() {
@@ -268,5 +236,12 @@ public class MainActivity extends Activity {
                 }
             }
         });
+	}
+
+	@Override
+	protected void onDestroy() {
+		// Unregister since the activity is about to be closed.
+		LocalBroadcastManager.getInstance(this).unregisterReceiver(logReceiver);
+		super.onDestroy();
 	}
 }

@@ -6,6 +6,11 @@ import android.app.Application;
 public class CPUMinerApplication extends Application {
 
 	private native int detectCPUHasNeon();
+	protected native long getAccepted();
+	protected native long getRejected();
+	protected native int getThreads();
+	protected native double getHashRate(int cpu);
+
 	private String textLog = "";
 	private Thread worker = null;
 	private Thread logger = null;
@@ -72,15 +77,17 @@ public class CPUMinerApplication extends Application {
 		}
 	}
 
-	public Thread getLogger()
+	public boolean hasLogger()
 	{
-		return logger;
+		return logger != null;
 	}
 
-	public void startLogger(Thread t)
+	public void startLogger()
 	{
-		logger = t;
-		logger.start();
+		if (logger == null) {
+			logger = new Thread(new LoggerRunnable(this));
+			logger.start();
+		}
 	}
 
 	public void stopLogger()
@@ -89,6 +96,7 @@ public class CPUMinerApplication extends Application {
 			return;
 
 		try {
+			logger.interrupt();
 			logger.join();
 			logger = null;
 		} catch (InterruptedException e) {
