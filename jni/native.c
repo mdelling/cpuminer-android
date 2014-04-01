@@ -10,7 +10,7 @@
 #include <android/log.h>
 #define DEBUG_TAG "CPUMiner_NativeLauncher"
 
-jint Java_com_mdelling_cpuminer_MainActivity_startMiner(JNIEnv * env, jobject this, jint number, jstring parameters)
+jint Java_com_mdelling_cpuminer_CPUMinerApplication_startMiner(JNIEnv * env, jobject this, jint number, jstring parameters)
 {
 	jboolean isCopy;
 	const char * szParameters = (*env)->GetStringUTFChars(env, parameters, &isCopy);
@@ -30,7 +30,7 @@ jint Java_com_mdelling_cpuminer_MainActivity_startMiner(JNIEnv * env, jobject th
 	return retval;
 }
 
-void Java_com_mdelling_cpuminer_MainActivity_stopMiner(JNIEnv * env, jobject this)
+void Java_com_mdelling_cpuminer_CPUMinerApplication_stopMiner(JNIEnv * env, jobject this)
 {
 	stop_miner();
 }

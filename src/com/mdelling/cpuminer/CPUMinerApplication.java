@@ -6,6 +6,8 @@ import android.app.Application;
 public class CPUMinerApplication extends Application {
 
 	private native int detectCPUHasNeon();
+	protected native int startMiner(int number, String parameters);
+	private native void stopMiner();
 	protected native long getAccepted();
 	protected native long getRejected();
 	protected native int getThreads();
@@ -52,15 +54,17 @@ public class CPUMinerApplication extends Application {
 		textLog = "";
 	}
 
-	public Thread getWorker()
+	public boolean hasWorker()
 	{
-		return worker;
+		return worker != null;
 	}
 
-	public void startWorker(Thread t)
+	public void startWorker()
 	{
-		worker = t;
-		worker.start();
+		if (worker == null) {
+			worker = new Thread(new CPUMinerRunnable(this));
+			worker.start();
+		}
 	}
 
 	public void stopWorker()
@@ -69,6 +73,7 @@ public class CPUMinerApplication extends Application {
 			return;
 
 		try {
+			stopMiner();
 			worker.join();
 			worker = null;
 		} catch (InterruptedException e) {

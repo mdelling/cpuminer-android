@@ -1,15 +1,11 @@
 package com.mdelling.cpuminer;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.PowerManager;
-import android.os.PowerManager.WakeLock;
 import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.Layout;
@@ -23,13 +19,10 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity {
 
-	private native int startMiner(int number, String parameters);
-	private native void stopMiner();
 	private Button startButton;
 	private Button stopButton;
 	private Button clearButton;
 	private TextView logView;
-	private Handler mHandler;
 	private LogReceiver logReceiver;
 
 	@Override
@@ -80,9 +73,6 @@ public class MainActivity extends Activity {
 		this.logReceiver = new LogReceiver(this);
 		LocalBroadcastManager.getInstance(this).registerReceiver(logReceiver, logIntentFilter);
 
-		// Create handle for logging
-		this.mHandler = new Handler();
-
 		// This may log, so we can't do it before we create the handler
 		this.updateButtons();
 	}
@@ -132,7 +122,7 @@ public class MainActivity extends Activity {
 		// Don't attempt to start if we're missing configurations
 		// The worker thread however, may take a while to exit
 		// We don't want to allow the user to restart until it is finished
-		if (app.getWorker() != null)
+		if (app.hasWorker())
 			this.startButton.setEnabled(false);
 		else if (server.length() > 0 && port.length() > 0 && username.length() > 0 && password.length() > 0)
 			this.startButton.setEnabled(true);
@@ -143,99 +133,38 @@ public class MainActivity extends Activity {
 		}
 	}
 
+	// Start the worker and logger threads
 	private void startMining() {
 		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
-
-		// Create and start the worker thread
-	    Thread worker = new Thread(new Runnable() {
-	        @SuppressLint("Wakelock")
-			@Override
-			public void run() {
-	        	// Don't stop mining when the screen sleeps
-	        	Context context = getApplicationContext();
-	    		PowerManager mgr = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
-	    		WakeLock wakeLock = mgr.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyWakeLock");
-	    		wakeLock.acquire();
-
-	    		// Get the current settings
-	        	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-	    		String algorithm = prefs.getString("pref_algorithm", "");
-	    		String protocol = prefs.getString("pref_protocol", "");
-	    		String server = prefs.getString("pref_server", "");
-	    		String port = prefs.getString("pref_port", "");
-	    		String username = prefs.getString("pref_username", "");
-	    		String password = prefs.getString("pref_password", "");
-
-	    		// Start mining
-	    		log("Starting miner");
-	    		int retval = startMiner(7, "minerd -a " + algorithm + " -o " + protocol + server + ":" + port + " -O " + username + ":" + password);
-	    		if (retval != 0)
-	    			log("Configuration error");
-
-	    		// Release wakelock
-	    		log("Stopped miner");
-	    		wakeLock.release();
-	    		updateButtons();
-	        }
-	    });
-	    app.startWorker(worker);
-
-	    // Create and start the log update thread
-	    app.startLogger();
-
-	    // Update the buttons
-	    this.updateButtons();
+		app.startWorker();
+		app.startLogger();
+		this.updateButtons();
+		log("Started miner");
 	}
 
 	private void stopMining() {
 		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
-		log("Stopping miner");
-
-		// Stop the worker threads and wait asynchronously - this may take a bit
-		stopMiner();
-		new Thread(new Runnable() {
-		    @Override
-			public void run() {
-				CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
-		    	app.stopWorker();
-		    	mHandler.post(new Runnable() {
-		    		@Override
-					public void run() {
-		    			updateButtons();
-		    		}
-		    	});
-		    }
-		}).start();
-
-		// Stop the logger thread and wait synchronously - this should be short
-		app.stopLogger();
-		this.updateButtons();
+		new StopWorkers(app).execute();
 	}
 
 	protected void log(String message)
 	{
-		final String m = message;
-        mHandler.post(new Runnable() {
-            @Override
-            public void run() {
-            	// This gets executed on the UI thread so it can safely modify Views
-            	CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
-            	app.appendToTextLog(m);
-            	if (logView.getLineCount() < 2)
-            		logView.setText(app.getTextLog());
-            	else
-            		logView.append(m + "\n");
+		// This gets executed on the UI thread so it can safely modify Views
+		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
+		app.appendToTextLog(message);
+		if (logView.getLineCount() < 2)
+			logView.setText(app.getTextLog());
+		else
+			logView.append(message + "\n");
 
-            	// Scroll to the bottom of the textview
-                final Layout layout = logView.getLayout();
-                if(layout != null){
-                    int scrollDelta = layout.getLineBottom(logView.getLineCount() - 1)
-                        - logView.getScrollY() - logView.getHeight();
-                    if(scrollDelta > 0)
-                        logView.scrollBy(0, scrollDelta);
-                }
-            }
-        });
+		// Scroll to the bottom of the textview
+		final Layout layout = logView.getLayout();
+		if (layout != null) {
+			int scrollDelta = layout.getLineBottom(logView.getLineCount() - 1)
+					- logView.getScrollY() - logView.getHeight();
+			if(scrollDelta > 0)
+				logView.scrollBy(0, scrollDelta);
+		}
 	}
 
 	@Override
@@ -243,5 +172,35 @@ public class MainActivity extends Activity {
 		// Unregister since the activity is about to be closed.
 		LocalBroadcastManager.getInstance(this).unregisterReceiver(logReceiver);
 		super.onDestroy();
+	}
+
+	// Stop miner and logger asynchronously, updating the buttons after completion
+	private class StopWorkers extends AsyncTask<Void, Integer, Void> {
+
+		private CPUMinerApplication application;
+
+		public StopWorkers(CPUMinerApplication application) {
+			this.application = application;
+		}
+
+		@Override
+		protected Void doInBackground(Void... params) {
+			application.stopLogger();
+			publishProgress(1);
+			application.stopWorker();
+			publishProgress(2);
+			return null;
+		}
+
+		@Override
+		protected void onProgressUpdate(Integer... values) {
+			log("Stopped worker " + values[0] + "/2");
+			updateButtons();
+		}
+
+		@Override
+		protected void onPostExecute(Void result) {
+			log("Stopped miner");
+		}
 	}
 }
