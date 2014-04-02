@@ -11,7 +11,8 @@
 		<EditTextPreference
 			android:key="pref_port"
 			android:title="@string/pref_port"
-			android:inputType="number" />
+			android:inputType="number"
+			android:maxLength="5" />
 
 		<ListPreference
 			android:key="pref_protocol"

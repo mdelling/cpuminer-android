@@ -8,18 +8,33 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.EditTextPreference;
 import android.preference.ListPreference;
+import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
+import android.widget.Toast;
 
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public class ServerPreferences extends PreferenceFragment implements OnSharedPreferenceChangeListener {
     @Override
     public void onCreate(Bundle savedInstanceState) {
-    	Context context = this.getActivity().getApplicationContext();
+    	final Context context = this.getActivity().getApplicationContext();
     	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.server_preferences);
         loadPreferences(prefs);
+
+        // Validate that the port is a valid number
+        findPreference("pref_port").setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+        	@Override
+        	public boolean onPreferenceChange(Preference preference, Object newValue) {
+        		Integer port = Integer.parseInt(((String)newValue).trim());
+        		if (port >= 1 && port <= 65535)
+        			return true;
+
+        		Toast.makeText(context, "Port must be between 1 and 65535", Toast.LENGTH_LONG).show();
+        		return false;
+        	}
+        });
     }
 
 	@Override
