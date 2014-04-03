@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-	android:key="pref_screen"
-	android:title="@string/pref_title" >
+	android:key="pref_server_screen"
+	android:title="@string/pref_server_title" >
 
 		<EditTextPreference
 			android:key="pref_server"

@@ -5,9 +5,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.v4.content.LocalBroadcastManager;
 import android.text.Layout;
 import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
@@ -24,6 +24,7 @@ public class MainActivity extends Activity {
 	private Button clearButton;
 	private TextView logView;
 	private LogReceiver logReceiver;
+	private BatteryReceiver batteryReceiver;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -70,8 +71,13 @@ public class MainActivity extends Activity {
 
 		// Register for logging messages
 		IntentFilter logIntentFilter = new IntentFilter("com.mdelling.cpuminer.logMessage");
-		this.logReceiver = new LogReceiver(this);
-		LocalBroadcastManager.getInstance(this).registerReceiver(logReceiver, logIntentFilter);
+		this.logReceiver = new LogReceiver();
+		this.registerReceiver(logReceiver, logIntentFilter);
+
+		// Register for battery status changes
+		IntentFilter batteryIntentFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+		this.batteryReceiver = new BatteryReceiver();
+		this.registerReceiver(batteryReceiver, batteryIntentFilter);
 
 		// This may log, so we can't do it before we create the handler
 		this.updateButtons();
@@ -135,6 +141,14 @@ public class MainActivity extends Activity {
 
 	// Start the worker and logger threads
 	private void startMining() {
+		// Check whether we should start given current power settings
+		IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+		Intent batteryStatus = this.registerReceiver(null, ifilter);
+		if (!shouldRunOnBattery(batteryStatus)) {
+			log("Currently running on battery");
+			return;
+		}
+
 		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
 		app.startWorker();
 		app.startLogger();
@@ -145,6 +159,18 @@ public class MainActivity extends Activity {
 	private void stopMining() {
 		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
 		new StopWorkers(app).execute();
+	}
+
+	private boolean shouldRunOnBattery(Intent batteryStatus)
+	{
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		boolean useBattery = prefs.getBoolean("pref_battery", false);
+		if (useBattery)
+			return true;
+
+		int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+		return status == BatteryManager.BATTERY_STATUS_CHARGING ||
+			   status == BatteryManager.BATTERY_STATUS_FULL;
 	}
 
 	protected void log(String message)
@@ -167,10 +193,21 @@ public class MainActivity extends Activity {
 		}
 	}
 
+	protected void handleBatteryEvent(Intent batteryStatus)
+	{
+		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
+
+		// Stop mining if we just switched to battery and aren't supposed to use it
+		if (!shouldRunOnBattery(batteryStatus) && app.hasLogger()) {
+			this.stopMining();
+		}
+	}
+
 	@Override
 	protected void onDestroy() {
-		// Unregister since the activity is about to be closed.
-		LocalBroadcastManager.getInstance(this).unregisterReceiver(logReceiver);
+		// Unregister receivers since the activity is about to be closed.
+		this.unregisterReceiver(logReceiver);
+		this.unregisterReceiver(batteryReceiver);
 		super.onDestroy();
 	}
 

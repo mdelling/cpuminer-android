@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+	android:key="pref_device_screen"
+	android:title="@string/pref_device_title" >
+
+		<CheckBoxPreference
+			android:key="pref_battery"
+			android:title="@string/pref_battery"
+			android:defaultValue="false" />
+
+</PreferenceScreen>
