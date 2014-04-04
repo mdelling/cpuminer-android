@@ -8,6 +8,7 @@ import android.os.AsyncTask;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.text.Layout;
 import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
@@ -31,9 +32,8 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		// Update the activity reference
+		// Get a reference to the application
 		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
-		app.setCurrentActivity(this);
 
 		// Initialize the log view
 		this.logView = (TextView)this.findViewById(R.id.textlog);
@@ -71,8 +71,8 @@ public class MainActivity extends Activity {
 
 		// Register for logging messages
 		IntentFilter logIntentFilter = new IntentFilter("com.mdelling.cpuminer.logMessage");
-		this.logReceiver = new LogReceiver();
-		this.registerReceiver(logReceiver, logIntentFilter);
+		this.logReceiver = new LogReceiver(this);
+		LocalBroadcastManager.getInstance(this).registerReceiver(logReceiver, logIntentFilter);
 
 		// Register for battery status changes
 		IntentFilter batteryIntentFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
@@ -157,8 +157,7 @@ public class MainActivity extends Activity {
 	}
 
 	private void stopMining() {
-		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
-		new StopWorkers(app).execute();
+		new StopWorkers().execute();
 	}
 
 	private boolean shouldRunOnBattery(Intent batteryStatus)
@@ -206,7 +205,7 @@ public class MainActivity extends Activity {
 	@Override
 	protected void onDestroy() {
 		// Unregister receivers since the activity is about to be closed.
-		this.unregisterReceiver(logReceiver);
+		LocalBroadcastManager.getInstance(this).unregisterReceiver(logReceiver);
 		this.unregisterReceiver(batteryReceiver);
 		super.onDestroy();
 	}
@@ -214,17 +213,12 @@ public class MainActivity extends Activity {
 	// Stop miner and logger asynchronously, updating the buttons after completion
 	private class StopWorkers extends AsyncTask<Void, Integer, Void> {
 
-		private CPUMinerApplication application;
-
-		public StopWorkers(CPUMinerApplication application) {
-			this.application = application;
-		}
-
 		@Override
 		protected Void doInBackground(Void... params) {
-			application.stopLogger();
+			CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
+			app.stopLogger();
 			publishProgress(1);
-			application.stopWorker();
+			app.stopWorker();
 			publishProgress(2);
 			return null;
 		}

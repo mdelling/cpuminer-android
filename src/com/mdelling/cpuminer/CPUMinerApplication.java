@@ -1,6 +1,5 @@
 package com.mdelling.cpuminer;
 
-import android.app.Activity;
 import android.app.Application;
 
 public class CPUMinerApplication extends Application {
@@ -16,7 +15,6 @@ public class CPUMinerApplication extends Application {
 	private String textLog = "";
 	private Thread worker = null;
 	private Thread logger = null;
-	private Activity currentActivity = null;
 
 	static {
 	    System.loadLibrary("curl");
@@ -108,15 +106,5 @@ public class CPUMinerApplication extends Application {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}
-
-	public Activity getCurrentActivity()
-	{
-		return currentActivity;
-	}
-
-	public void setCurrentActivity(Activity activity)
-	{
-		currentActivity = activity;
 	}
 }

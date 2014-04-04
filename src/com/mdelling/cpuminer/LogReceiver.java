@@ -6,9 +6,15 @@ import android.content.Intent;
 
 public class LogReceiver extends BroadcastReceiver {
 
+	private MainActivity activity;
+
+	public LogReceiver(MainActivity activity) {
+		this.activity = activity;
+	}
+
 	@Override
 	public void onReceive(Context arg0, Intent arg1) {
-		((MainActivity) arg0).log(arg1.getStringExtra("logMessage"));
+		activity.log(arg1.getStringExtra("logMessage"));
 	}
 
 }
