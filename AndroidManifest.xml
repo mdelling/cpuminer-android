@@ -6,7 +6,7 @@
 
     <uses-sdk
         android:minSdkVersion="8"
-        android:targetSdkVersion="18" />
+        android:targetSdkVersion="19" />
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -26,8 +26,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
-    		android:name=".CPUMinerPreferences" />
+            android:name=".CPUMinerPreferences" />
+
+        <receiver
+            android:name="CPUMinerAppWidgetProvider"
+            android:label="CPUMiner Widget">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/cpuminer_appwidget_info" />
+        </receiver>
     </application>
 
 </manifest>

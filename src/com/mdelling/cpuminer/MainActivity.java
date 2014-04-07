@@ -1,6 +1,8 @@
 package com.mdelling.cpuminer;
 
 import android.app.Activity;
+import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -190,6 +192,9 @@ public class MainActivity extends Activity {
 			if(scrollDelta > 0)
 				logView.scrollBy(0, scrollDelta);
 		}
+
+		// Tell the widget to update
+		updateWidget();
 	}
 
 	protected void handleBatteryEvent(Intent batteryStatus)
@@ -200,6 +205,15 @@ public class MainActivity extends Activity {
 		if (!shouldRunOnBattery(batteryStatus) && app.hasLogger()) {
 			this.stopMining();
 		}
+	}
+
+	private void updateWidget()
+	{
+		Intent intent = new Intent(this, CPUMinerAppWidgetProvider.class);
+		intent.setAction("android.appwidget.action.APPWIDGET_UPDATE");
+		int ids[] = AppWidgetManager.getInstance(getApplication()).getAppWidgetIds(new ComponentName(getApplication(), CPUMinerAppWidgetProvider.class));
+		intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,ids);
+		sendBroadcast(intent);
 	}
 
 	@Override

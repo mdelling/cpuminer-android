@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:padding="@dimen/widget_margin">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:background="@drawable/appwidget_dark_bg_clickable">
+
+        <Button
+            android:id="@+id/widget_hashrate"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1.0"
+            android:layout_gravity="center_vertical"
+            android:background="@android:color/transparent"
+            android:padding="@dimen/widget_padding"
+            android:textSize="30sp"
+            android:text="1234.56 kh" />
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_height="match_parent"
+            android:layout_width="wrap_content"
+            android:gravity="center"
+            android:layout_weight="0.2">
+    
+            <TextView
+                android:id="@+id/widget_server"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:textSize="12sp"
+                android:text="serverserverserver"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:scrollHorizontally="true"/>
+
+            <TextView
+                android:id="@+id/widget_accepted"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:textSize="16sp"
+                android:text="1234/1235 accepted"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:scrollHorizontally="true"/>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>
