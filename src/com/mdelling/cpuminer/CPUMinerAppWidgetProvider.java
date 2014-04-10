@@ -21,7 +21,7 @@ public class CPUMinerAppWidgetProvider extends AppWidgetProvider {
 	public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
 		// Get the current hash rates
 		CPUMinerApplication app = (CPUMinerApplication)context.getApplicationContext();
-		String hashrate_string = "Not Running";
+		String hashrate_string = "Stopped";
 		if (app.hasLogger()) {
 			double hashRate = 0;
 			for (int i = 0; i < app.getThreads(); i++)

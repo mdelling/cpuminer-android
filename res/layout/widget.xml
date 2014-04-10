@@ -10,6 +10,13 @@
         android:orientation="horizontal"
         android:background="@drawable/appwidget_dark_bg_clickable">
 
+        <ImageView
+            android:id="@+id/widget_icon"
+            android:layout_height="match_parent"
+            android:layout_width="50dp"
+            android:src="@drawable/ic_launcher"
+            android:contentDescription="@string/app_name" />
+
         <Button
             android:id="@+id/widget_hashrate"
             android:layout_width="0dp"
@@ -17,9 +24,7 @@
             android:layout_weight="1.0"
             android:layout_gravity="center_vertical"
             android:background="@android:color/transparent"
-            android:padding="@dimen/widget_padding"
-            android:textSize="30sp"
-            android:text="1234.56 kh" />
+            android:textSize="30sp" />
 
         <LinearLayout
             android:orientation="vertical"
@@ -34,7 +39,6 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
                 android:textSize="12sp"
-                android:text="serverserverserver"
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:scrollHorizontally="true"/>
@@ -45,7 +49,6 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
                 android:textSize="16sp"
-                android:text="1234/1235 accepted"
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:scrollHorizontally="true"/>
