@@ -225,16 +225,19 @@ public class MainActivity extends Activity {
 	}
 
 	// Stop miner and logger asynchronously, updating the buttons after completion
-	private class StopWorkers extends AsyncTask<Void, Integer, Void> {
+	private class StopWorkers extends AsyncTask<Void, Integer, Boolean> {
 
 		@Override
-		protected Void doInBackground(Void... params) {
+		protected Boolean doInBackground(Void... params) {
 			CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
+			if (!app.hasLogger())
+				return false;
+
 			app.stopLogger();
 			publishProgress(1);
 			app.stopWorker();
 			publishProgress(2);
-			return null;
+			return true;
 		}
 
 		@Override
@@ -244,8 +247,9 @@ public class MainActivity extends Activity {
 		}
 
 		@Override
-		protected void onPostExecute(Void result) {
-			log("Stopped miner");
+		protected void onPostExecute(Boolean result) {
+			if (result)
+				log("Stopped miner");
 		}
 	}
 }
