@@ -1,8 +1,6 @@
 package com.mdelling.cpuminer;
 
 import android.app.Activity;
-import android.appwidget.AppWidgetManager;
-import android.content.ComponentName;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -35,7 +33,7 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.activity_main);
 
 		// Get a reference to the application
-		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
+		CPUMinerApplication app = (CPUMinerApplication)getApplication();
 
 		// Initialize the log view
 		this.logView = (TextView)this.findViewById(R.id.textlog);
@@ -64,7 +62,7 @@ public class MainActivity extends Activity {
 		this.clearButton.setOnClickListener(new OnClickListener() {
 			@Override
 		    public void onClick(View v) {
-				CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
+				CPUMinerApplication app = (CPUMinerApplication)getApplication();
 				app.clearTextLog();
 				logView.setText("");
 				logView.scrollTo(0, 0);
@@ -114,8 +112,8 @@ public class MainActivity extends Activity {
 
 	private void updateButtons()
 	{
-		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
-    	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		CPUMinerApplication app = (CPUMinerApplication)getApplication();
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		String server = prefs.getString("pref_server", "");
 		String port = prefs.getString("pref_port", "");
 		String username = prefs.getString("pref_username", "");
@@ -139,6 +137,9 @@ public class MainActivity extends Activity {
 				log("Configuration required");
 		    this.startButton.setEnabled(false);
 		}
+
+		// Update the widget
+		app.updateWidget();
 	}
 
 	// Start the worker and logger threads
@@ -151,7 +152,7 @@ public class MainActivity extends Activity {
 			return;
 		}
 
-		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
+		CPUMinerApplication app = (CPUMinerApplication)getApplication();
 		app.startWorker();
 		app.startLogger();
 		this.updateButtons();
@@ -177,7 +178,7 @@ public class MainActivity extends Activity {
 	protected void log(String message)
 	{
 		// This gets executed on the UI thread so it can safely modify Views
-		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
+		CPUMinerApplication app = (CPUMinerApplication)getApplication();
 		app.appendToTextLog(message);
 		if (logView.getLineCount() < 2)
 			logView.setText(app.getTextLog());
@@ -192,28 +193,16 @@ public class MainActivity extends Activity {
 			if(scrollDelta > 0)
 				logView.scrollBy(0, scrollDelta);
 		}
-
-		// Tell the widget to update
-		updateWidget();
 	}
 
 	protected void handleBatteryEvent(Intent batteryStatus)
 	{
-		CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
+		CPUMinerApplication app = (CPUMinerApplication)getApplication();
 
 		// Stop mining if we just switched to battery and aren't supposed to use it
 		if (!shouldRunOnBattery(batteryStatus) && app.hasLogger()) {
 			this.stopMining();
 		}
-	}
-
-	private void updateWidget()
-	{
-		Intent intent = new Intent(this, CPUMinerAppWidgetProvider.class);
-		intent.setAction("android.appwidget.action.APPWIDGET_UPDATE");
-		int ids[] = AppWidgetManager.getInstance(getApplication()).getAppWidgetIds(new ComponentName(getApplication(), CPUMinerAppWidgetProvider.class));
-		intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,ids);
-		sendBroadcast(intent);
 	}
 
 	@Override
@@ -229,7 +218,7 @@ public class MainActivity extends Activity {
 
 		@Override
 		protected Boolean doInBackground(Void... params) {
-			CPUMinerApplication app = (CPUMinerApplication)getApplicationContext();
+			CPUMinerApplication app = (CPUMinerApplication)getApplication();
 			if (!app.hasLogger())
 				return false;
 

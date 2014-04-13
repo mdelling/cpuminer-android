@@ -22,7 +22,6 @@
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -32,7 +31,8 @@
 
         <receiver
             android:name="CPUMinerAppWidgetProvider"
-            android:label="CPUMiner Widget">
+            android:label="CPUMiner Widget"
+            android:exported="false" >
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

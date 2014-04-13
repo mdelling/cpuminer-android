@@ -1,6 +1,9 @@
 package com.mdelling.cpuminer;
 
 import android.app.Application;
+import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
+import android.content.Intent;
 
 public class CPUMinerApplication extends Application {
 
@@ -106,5 +109,14 @@ public class CPUMinerApplication extends Application {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+
+	protected void updateWidget()
+	{
+		Intent intent = new Intent(this, CPUMinerAppWidgetProvider.class);
+		intent.setAction("android.appwidget.action.APPWIDGET_UPDATE");
+		int ids[] = AppWidgetManager.getInstance(this).getAppWidgetIds(new ComponentName(this, CPUMinerAppWidgetProvider.class));
+		intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,ids);
+		sendBroadcast(intent);
 	}
 }

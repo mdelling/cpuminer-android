@@ -55,9 +55,12 @@ static inline void drop_policy(void)
 #ifdef SCHED_IDLE
 	if (unlikely(sched_setscheduler(0, SCHED_IDLE, &param) == -1))
 #endif
+	{
 #ifdef SCHED_BATCH
-		sched_setscheduler(0, SCHED_BATCH, &param);
+		if (unlikely(sched_setscheduler(gettid(), SCHED_BATCH, &param) == -1))
+			applog(LOG_ERR, "Error in syscall setscheduler: err=%d=0x%x", errno, errno);
 #endif
+	}
 }
 
 static inline void affine_to_cpu(int id, int cpu)
@@ -66,8 +69,10 @@ static inline void affine_to_cpu(int id, int cpu)
 	CPU_ZERO(&set);
 	CPU_SET(cpu, &set);
 
-    if (sched_setaffinity(gettid(), sizeof(set), &set))
-        applog(LOG_ERR, "Error in the syscall setaffinity: mask=%d=0x%x err=%d=0x%x", set, set, errno, errno);
+	// On some devices, this will fail due to CPUs not being active
+	// That doesn't really matter, since the scheduler will handle it.
+	if (sched_setaffinity(gettid(), sizeof(set), &set))
+		applog(LOG_ERR, "Error in the syscall setaffinity: mask=%d=0x%x err=%d=0x%x", set, set, errno, errno);
 }
 #elif defined(__FreeBSD__) /* FreeBSD specific policy and affinity management */
 #include <sys/cpuset.h>

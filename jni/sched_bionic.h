@@ -11,6 +11,7 @@
 
 #include <sched.h>
 #include <sys/syscall.h>
+#include <linux/sched.h>
 
 /* Our implementation supports up to 32 independent CPUs, which is also
 * the maximum supported by the kernel at the moment. GLibc uses 1024 by

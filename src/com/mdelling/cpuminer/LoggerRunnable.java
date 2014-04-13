@@ -50,5 +50,6 @@ public class LoggerRunnable implements Runnable {
         Intent i = new Intent("com.mdelling.cpuminer.logMessage");
         i.putExtra("logMessage", message);
         LocalBroadcastManager.getInstance(application).sendBroadcast(i);
+        application.updateWidget();
     }
 }
