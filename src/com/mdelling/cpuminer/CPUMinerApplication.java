@@ -24,6 +24,7 @@ public class CPUMinerApplication extends Application {
 	private String textLog = "";
 	private Thread worker = null;
 	private Thread logger = null;
+	private PreferenceReceiver preferenceReceiver = null;
 	private BatteryReceiver batteryReceiver = null;
 
 	static {
@@ -73,6 +74,11 @@ public class CPUMinerApplication extends Application {
 		this.batteryReceiver = new BatteryReceiver();
 		this.registerReceiver(batteryReceiver, batteryIntentFilter);
 
+		// Register for battery status changes
+		IntentFilter preferenceIntentFilter = new IntentFilter("com.mdelling.cpuminer.preferenceChanged");
+		this.preferenceReceiver = new PreferenceReceiver();
+		LocalBroadcastManager.getInstance(this).registerReceiver(preferenceReceiver, preferenceIntentFilter);
+
 		startWorker();
 		startLogger();
 	}
@@ -81,6 +87,7 @@ public class CPUMinerApplication extends Application {
 	{
 		// Unregister for battery status changes
 		this.unregisterReceiver(batteryReceiver);
+		LocalBroadcastManager.getInstance(this).unregisterReceiver(preferenceReceiver);
 
 		new WaitForWorkers().execute();
 		stopMiner();
@@ -228,12 +235,16 @@ public class CPUMinerApplication extends Application {
 	// Battery management
 	//=====================================================================
 
-	protected boolean shouldRunOnBattery()
+	private Intent batteryStatus()
 	{
 		// Check whether we should start given current power settings
 		IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-		Intent batteryStatus = this.registerReceiver(null, ifilter);
-		return shouldRunOnBattery(batteryStatus);
+		return this.registerReceiver(null, ifilter);
+	}
+
+	protected boolean shouldRunOnBattery()
+	{
+		return shouldRunOnBattery(batteryStatus());
 	}
 
 	protected boolean shouldRunOnBattery(Intent batteryStatus)
@@ -249,6 +260,11 @@ public class CPUMinerApplication extends Application {
 	}
 
 	// Stop mining if we just switched to battery and aren't supposed to use it
+	protected void handleBatteryEvent()
+	{
+		handleBatteryEvent(batteryStatus());
+	}
+
 	protected void handleBatteryEvent(Intent batteryStatus)
 	{
 		if (!shouldRunOnBattery(batteryStatus) && hasLogger()) {
