@@ -139,7 +139,7 @@ public class MainActivity extends Activity {
 		}
 
 		// Update the widget
-		app.updateWidget();
+		app.updateApplication();
 	}
 
 	// Start the worker and logger threads

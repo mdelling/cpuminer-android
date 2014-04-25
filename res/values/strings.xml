@@ -12,6 +12,7 @@
 	<string name="pref_algorithm">Algorithm</string>
 	<string name="pref_device_title">Device Preferences</string>
 	<string name="pref_battery">Run on Battery</string>
+	<string name="pref_widget">Widget Enabled</string>
 	<string name="button_start">Start Mining</string>
 	<string name="button_stop">Stop Mining</string>
 	<string name="button_clear">Clear Log</string>

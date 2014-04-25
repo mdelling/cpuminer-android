@@ -4,6 +4,9 @@ import android.app.Application;
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
+import android.support.v4.content.LocalBroadcastManager;
 
 public class CPUMinerApplication extends Application {
 
@@ -111,12 +114,32 @@ public class CPUMinerApplication extends Application {
 		}
 	}
 
-	protected void updateWidget()
+	protected void updateApplication() {
+		updateApplication(null);
+	}
+
+	protected void updateApplication(LogEntry entry)
 	{
-		Intent intent = new Intent(this, CPUMinerAppWidgetProvider.class);
-		intent.setAction("android.appwidget.action.APPWIDGET_UPDATE");
-		int ids[] = AppWidgetManager.getInstance(this).getAppWidgetIds(new ComponentName(this, CPUMinerAppWidgetProvider.class));
-		intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,ids);
-		sendBroadcast(intent);
+		// Tell the widget something has happened
+		if (isWidgetActive()) {
+			Intent intent = new Intent(this, CPUMinerAppWidgetProvider.class);
+			intent.setAction("android.appwidget.action.APPWIDGET_UPDATE");
+			int ids[] = AppWidgetManager.getInstance(this).getAppWidgetIds(new ComponentName(this, CPUMinerAppWidgetProvider.class));
+			intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,ids);
+			sendBroadcast(intent);
+		}
+
+		// Update the activity
+		if (entry != null) {
+	        Intent i = new Intent("com.mdelling.cpuminer.logMessage");
+	        i.putExtra("com.mdelling.cpuminer.logEntry", entry);
+	        LocalBroadcastManager.getInstance(this).sendBroadcast(i);
+		}
+	}
+
+	private boolean isWidgetActive() {
+	    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+	    String pref_widget = this.getResources().getString(R.string.pref_widget);
+	    return prefs.getBoolean(pref_widget, false);
 	}
 }

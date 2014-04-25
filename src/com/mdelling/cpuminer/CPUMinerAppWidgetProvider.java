@@ -16,6 +16,26 @@ import android.widget.RemoteViews;
 
 public class CPUMinerAppWidgetProvider extends AppWidgetProvider {
 
+	@Override
+	public void onEnabled(Context context) {
+	    super.onEnabled(context);
+	    setWidgetActive(context, true);
+	}
+
+	@Override
+	public void onDisabled(Context context) {
+	    setWidgetActive(context, false);
+	    super.onDisabled(context);
+	}
+
+	private void setWidgetActive(Context context, boolean active){
+	    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+	    SharedPreferences.Editor edit = prefs.edit();
+	    String pref_widget = context.getResources().getString(R.string.pref_widget);
+	    edit.putBoolean(pref_widget, active);
+	    edit.commit();
+	}
+
 	@TargetApi(Build.VERSION_CODES.HONEYCOMB)
 	@Override
 	public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
