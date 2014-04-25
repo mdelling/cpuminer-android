@@ -4,8 +4,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.os.AsyncTask;
-import android.os.BatteryManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
@@ -20,12 +18,13 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity {
 
+	private CPUMinerApplication application;
 	private Button startButton;
 	private Button stopButton;
 	private Button clearButton;
 	private TextView logView;
+	private StateReceiver stateReceiver;
 	private LogReceiver logReceiver;
-	private BatteryReceiver batteryReceiver;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -33,12 +32,12 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.activity_main);
 
 		// Get a reference to the application
-		CPUMinerApplication app = (CPUMinerApplication)getApplication();
+		application = (CPUMinerApplication)getApplication();
 
 		// Initialize the log view
 		this.logView = (TextView)this.findViewById(R.id.textlog);
 		this.logView.setMovementMethod(new ScrollingMovementMethod());
-		logView.setText(app.getTextLog());
+		logView.setText(application.getTextLog());
 
 		// Initialize the start/stop buttons
 		this.startButton = (Button)this.findViewById(R.id.start_button);
@@ -74,10 +73,10 @@ public class MainActivity extends Activity {
 		this.logReceiver = new LogReceiver(this);
 		LocalBroadcastManager.getInstance(this).registerReceiver(logReceiver, logIntentFilter);
 
-		// Register for battery status changes
-		IntentFilter batteryIntentFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-		this.batteryReceiver = new BatteryReceiver();
-		this.registerReceiver(batteryReceiver, batteryIntentFilter);
+		// Register for logging messages
+		IntentFilter stateIntentFilter = new IntentFilter("com.mdelling.cpuminer.stateMessage");
+		this.stateReceiver = new StateReceiver(this);
+		LocalBroadcastManager.getInstance(this).registerReceiver(stateReceiver, stateIntentFilter);
 
 		// This may log, so we can't do it before we create the handler
 		this.updateButtons();
@@ -110,17 +109,16 @@ public class MainActivity extends Activity {
 			this.updateButtons();
 	}
 
-	private void updateButtons()
+	protected void updateButtons()
 	{
-		CPUMinerApplication app = (CPUMinerApplication)getApplication();
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		String server = prefs.getString("pref_server", "");
 		String port = prefs.getString("pref_port", "");
 		String username = prefs.getString("pref_username", "");
 		String password = prefs.getString("pref_password", "");
 
-		// The logger thread should stop immediately when we hit stop
-		if (app.hasLogger())
+		// Stop button should only be available if we're running
+		if (application.isRunning() && !application.isStopping())
 			this.stopButton.setEnabled(true);
 		else
 			this.stopButton.setEnabled(false);
@@ -128,7 +126,7 @@ public class MainActivity extends Activity {
 		// Don't attempt to start if we're missing configurations
 		// The worker thread however, may take a while to exit
 		// We don't want to allow the user to restart until it is finished
-		if (app.hasWorker())
+		if (application.isRunning() || application.isStopping())
 			this.startButton.setEnabled(false);
 		else if (server.length() > 0 && port.length() > 0 && username.length() > 0 && password.length() > 0)
 			this.startButton.setEnabled(true);
@@ -137,51 +135,31 @@ public class MainActivity extends Activity {
 				log("Configuration required");
 		    this.startButton.setEnabled(false);
 		}
-
-		// Update the widget
-		app.updateApplication();
 	}
 
-	// Start the worker and logger threads
+	// Start mining
 	private void startMining() {
-		// Check whether we should start given current power settings
-		IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-		Intent batteryStatus = this.registerReceiver(null, ifilter);
-		if (!shouldRunOnBattery(batteryStatus)) {
+		if (!application.shouldRunOnBattery()) {
 			log("Currently running on battery");
 			return;
 		}
 
-		CPUMinerApplication app = (CPUMinerApplication)getApplication();
-		app.startWorker();
-		app.startLogger();
+		application.start();
 		this.updateButtons();
 		log("Started miner");
 	}
 
+	// Stop mining
 	private void stopMining() {
-		new StopWorkers().execute();
-	}
-
-	private boolean shouldRunOnBattery(Intent batteryStatus)
-	{
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-		boolean useBattery = prefs.getBoolean("pref_battery", false);
-		if (useBattery)
-			return true;
-
-		int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-		return status == BatteryManager.BATTERY_STATUS_CHARGING ||
-			   status == BatteryManager.BATTERY_STATUS_FULL;
+		application.stop();
 	}
 
 	protected void log(String message)
 	{
 		// This gets executed on the UI thread so it can safely modify Views
-		CPUMinerApplication app = (CPUMinerApplication)getApplication();
-		app.appendToTextLog(message);
+		application.appendToTextLog(message);
 		if (logView.getLineCount() < 2)
-			logView.setText(app.getTextLog());
+			logView.setText(application.getTextLog());
 		else
 			logView.append(message + "\n");
 
@@ -195,50 +173,11 @@ public class MainActivity extends Activity {
 		}
 	}
 
-	protected void handleBatteryEvent(Intent batteryStatus)
-	{
-		CPUMinerApplication app = (CPUMinerApplication)getApplication();
-
-		// Stop mining if we just switched to battery and aren't supposed to use it
-		if (!shouldRunOnBattery(batteryStatus) && app.hasLogger()) {
-			this.stopMining();
-		}
-	}
-
 	@Override
 	protected void onDestroy() {
 		// Unregister receivers since the activity is about to be closed.
 		LocalBroadcastManager.getInstance(this).unregisterReceiver(logReceiver);
-		this.unregisterReceiver(batteryReceiver);
+		LocalBroadcastManager.getInstance(this).unregisterReceiver(stateReceiver);
 		super.onDestroy();
-	}
-
-	// Stop miner and logger asynchronously, updating the buttons after completion
-	private class StopWorkers extends AsyncTask<Void, Integer, Boolean> {
-
-		@Override
-		protected Boolean doInBackground(Void... params) {
-			CPUMinerApplication app = (CPUMinerApplication)getApplication();
-			if (!app.hasLogger())
-				return false;
-
-			app.stopLogger();
-			publishProgress(1);
-			app.stopWorker();
-			publishProgress(2);
-			return true;
-		}
-
-		@Override
-		protected void onProgressUpdate(Integer... values) {
-			log("Stopped worker " + values[0] + "/2");
-			updateButtons();
-		}
-
-		@Override
-		protected void onPostExecute(Boolean result) {
-			if (result)
-				log("Stopped miner");
-		}
 	}
 }

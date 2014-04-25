@@ -25,7 +25,7 @@ public class LoggerRunnable implements Runnable {
 
 				// Generate the LogEntry
 				LogEntry entry = new LogEntry(threads, hashRate, accepted, total);
-				application.updateApplication(entry);
+				application.handleLogEntry(entry);
 
 				// Sleep for a bit
 				Thread.sleep(60000);

@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
+import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.widget.RemoteViews;
 
@@ -40,8 +41,12 @@ public class CPUMinerAppWidgetProvider extends AppWidgetProvider {
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
-		LogEntry entry = intent.getParcelableExtra("com.mdelling.cpuminer.logEntry");
-		lastEntry = entry;
+		Bundle extras = intent.getExtras();
+		if (extras.containsKey("com.mdelling.cpuminer.logEntry")) {
+			LogEntry entry = intent.getParcelableExtra("com.mdelling.cpuminer.logEntry");
+			lastEntry = entry;
+		}
+
 		super.onReceive(context, intent);
 	}
 
@@ -55,7 +60,6 @@ public class CPUMinerAppWidgetProvider extends AppWidgetProvider {
 		if (lastEntry != null) {
 			hashrate_string = String.format(Locale.getDefault(), "%.2f kh/s", lastEntry.getHashRate());
 			accept_string = lastEntry.getBlocksAccepted() + "/" + lastEntry.getBlocksTotal() + " accepted";
-			lastEntry = null;
 		}
 
 		// Get the server address
