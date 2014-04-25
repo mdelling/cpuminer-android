@@ -16,6 +16,8 @@ import android.widget.RemoteViews;
 
 public class CPUMinerAppWidgetProvider extends AppWidgetProvider {
 
+	private LogEntry lastEntry = null;
+
 	@Override
 	public void onEnabled(Context context) {
 	    super.onEnabled(context);
@@ -36,23 +38,25 @@ public class CPUMinerAppWidgetProvider extends AppWidgetProvider {
 	    edit.commit();
 	}
 
+	@Override
+	public void onReceive(Context context, Intent intent) {
+		LogEntry entry = intent.getParcelableExtra("com.mdelling.cpuminer.logEntry");
+		lastEntry = entry;
+		super.onReceive(context, intent);
+	}
+
 	@TargetApi(Build.VERSION_CODES.HONEYCOMB)
 	@Override
 	public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-		// Get the current hash rates
-		CPUMinerApplication app = (CPUMinerApplication)context.getApplicationContext();
 		String hashrate_string = "Stopped";
-		if (app.hasLogger()) {
-			double hashRate = 0;
-			for (int i = 0; i < app.getThreads(); i++)
-				hashRate += app.getHashRate(i) / 1000;
-			hashrate_string = String.format(Locale.getDefault(), "%.2f kh/s", hashRate);
-		}
+		String accept_string = "0/0 accepted";
 
-		// Get the current accepted count
-		long accepted = app.getAccepted();
-		long total = accepted + app.getRejected();
-		String accept_string = accepted + "/" + total + " accepted";
+		// If this is a status update, grab the values
+		if (lastEntry != null) {
+			hashrate_string = String.format(Locale.getDefault(), "%.2f kh/s", lastEntry.getHashRate());
+			accept_string = lastEntry.getBlocksAccepted() + "/" + lastEntry.getBlocksTotal() + " accepted";
+			lastEntry = null;
+		}
 
 		// Get the server address
     	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);

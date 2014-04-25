@@ -13,9 +13,6 @@ public class LoggerRunnable implements Runnable {
 	public void run() {
 		while (true) {
 			try {
-				// Sleep for a bit
-				Thread.sleep(60000);
-
 				// Get the hash rate
 				int threads = application.getThreads();
 				double hashRate = 0;
@@ -29,6 +26,9 @@ public class LoggerRunnable implements Runnable {
 				// Generate the LogEntry
 				LogEntry entry = new LogEntry(threads, hashRate, accepted, total);
 				application.updateApplication(entry);
+
+				// Sleep for a bit
+				Thread.sleep(60000);
 			} catch (InterruptedException exp) {
 				break;
 			}

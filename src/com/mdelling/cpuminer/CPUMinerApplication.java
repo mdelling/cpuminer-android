@@ -126,6 +126,7 @@ public class CPUMinerApplication extends Application {
 			intent.setAction("android.appwidget.action.APPWIDGET_UPDATE");
 			int ids[] = AppWidgetManager.getInstance(this).getAppWidgetIds(new ComponentName(this, CPUMinerAppWidgetProvider.class));
 			intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,ids);
+			intent.putExtra("com.mdelling.cpuminer.logEntry", entry);
 			sendBroadcast(intent);
 		}
 
