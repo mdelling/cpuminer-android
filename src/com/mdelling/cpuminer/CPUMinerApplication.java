@@ -110,7 +110,7 @@ public class CPUMinerApplication extends Application {
 
 		@Override
 		protected Boolean doInBackground(Void... params) {
-			if (!isRunning())
+			if (!isRunning() || isStopping())
 				return false;
 
 			waitForLogger();

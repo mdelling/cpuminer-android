@@ -2,6 +2,7 @@ package com.mdelling.cpuminer;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Build;
@@ -11,6 +12,7 @@ import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.widget.Toast;
 
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)
@@ -39,6 +41,13 @@ public class ServerPreferences extends PreferenceFragment implements OnSharedPre
 
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+		final Context context = this.getActivity();
+		if (context != null) {
+			final Intent i = new Intent("com.mdelling.cpuminer.preferenceChanged");
+			i.putExtra("com.mdelling.cpuminer.preferenceKey", key);
+			LocalBroadcastManager.getInstance(context).sendBroadcast(i);
+		}
+
 		loadPreferences(sharedPreferences);
 	}
 

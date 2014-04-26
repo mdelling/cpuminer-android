@@ -24,10 +24,13 @@ public class DevicePreferences extends PreferenceFragment implements OnSharedPre
 
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-		final Context context = this.getActivity().getApplicationContext();
-		Intent i = new Intent("com.mdelling.cpuminer.preferenceChanged");
-		i.putExtra("com.mdelling.cpuminer.preferenceKey", key);
-		LocalBroadcastManager.getInstance(context).sendBroadcast(i);
+		final Context context = this.getActivity();
+		if (context != null) {
+			final Intent i = new Intent("com.mdelling.cpuminer.preferenceChanged");
+			i.putExtra("com.mdelling.cpuminer.preferenceKey", key);
+			LocalBroadcastManager.getInstance(context).sendBroadcast(i);
+		}
+
 		loadPreferences(sharedPreferences);
 	}
 

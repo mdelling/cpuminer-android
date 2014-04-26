@@ -8,10 +8,13 @@ public class PreferenceReceiver extends BroadcastReceiver {
 
 	@Override
 	public void onReceive(Context arg0, Intent arg1) {
-		String key = arg1.getStringExtra("com.mdelling.cpuminer.preferenceKey");
+		final String key = arg1.getStringExtra("com.mdelling.cpuminer.preferenceKey");
+		final CPUMinerApplication application = ((CPUMinerApplication) arg0);
 
 		if (key.equals(arg0.getResources().getString(R.string.pref_battery)))
-			((CPUMinerApplication) arg0).handleBatteryEvent();
+			application.handleBatteryEvent();
+		else
+			application.stop();
 	}
 
 }
