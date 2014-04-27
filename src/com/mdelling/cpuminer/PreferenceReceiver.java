@@ -11,7 +11,7 @@ public class PreferenceReceiver extends BroadcastReceiver {
 		final String key = arg1.getStringExtra("com.mdelling.cpuminer.preferenceKey");
 		final CPUMinerApplication application = ((CPUMinerApplication) arg0);
 
-		if (key.equals(arg0.getResources().getString(R.string.pref_battery)))
+		if (key.equals(R.string.pref_battery_key) || key.equals(R.string.pref_battery_level_key))
 			application.handleBatteryEvent();
 		else
 			application.stop();

@@ -227,7 +227,7 @@ public class CPUMinerApplication extends Application {
 
 	private boolean isWidgetActive() {
 	    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-	    String pref_widget = this.getResources().getString(R.string.pref_widget);
+	    String pref_widget = getString(R.string.pref_widget);
 	    return prefs.getBoolean(pref_widget, false);
 	}
 
@@ -250,10 +250,17 @@ public class CPUMinerApplication extends Application {
 	protected boolean shouldRunOnBattery(Intent batteryStatus)
 	{
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-		boolean useBattery = prefs.getBoolean("pref_battery", false);
-		if (useBattery)
-			return true;
+		boolean useBattery = prefs.getBoolean(getString(R.string.pref_battery_key), false);
+		float useBatteryLevel = prefs.getFloat(getString(R.string.pref_battery_level_key), 0);
+		int currentLevel = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+		int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+		float level = (float)currentLevel / scale;
 
+		// If we can run on battery, stop at minimum battery level
+		if (useBattery)
+			return level >= useBatteryLevel;
+
+		// Otherwise, only run if charging or full
 		int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
 		return status == BatteryManager.BATTERY_STATUS_CHARGING ||
 			   status == BatteryManager.BATTERY_STATUS_FULL;

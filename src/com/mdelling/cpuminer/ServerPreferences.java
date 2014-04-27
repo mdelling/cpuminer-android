@@ -26,7 +26,8 @@ public class ServerPreferences extends PreferenceFragment implements OnSharedPre
         loadPreferences(prefs);
 
         // Validate that the port is a valid number
-        findPreference("pref_port").setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+        EditTextPreference port = (EditTextPreference)findPreference(getString(R.string.pref_port_key));
+        port.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
         	@Override
         	public boolean onPreferenceChange(Preference preference, Object newValue) {
         		Integer port = Integer.parseInt(((String)newValue).trim());
@@ -65,17 +66,17 @@ public class ServerPreferences extends PreferenceFragment implements OnSharedPre
 	}
 
 	public void loadPreferences(SharedPreferences prefs) {
-		ListPreference protocol = (ListPreference)findPreference("pref_protocol");
-		protocol.setSummary(prefs.getString("pref_protocol", ""));
-		EditTextPreference server = (EditTextPreference)findPreference("pref_server");
-		server.setSummary(prefs.getString("pref_server", ""));
-		EditTextPreference port = (EditTextPreference)findPreference("pref_port");
-		port.setSummary(prefs.getString("pref_port", ""));
-		EditTextPreference username = (EditTextPreference)findPreference("pref_username");
-		username.setSummary(prefs.getString("pref_username", ""));
-		EditTextPreference password = (EditTextPreference)findPreference("pref_password");
-		password.setSummary(prefs.getString("pref_password", ""));
-		ListPreference algorithm = (ListPreference)findPreference("pref_algorithm");
+		ListPreference protocol = (ListPreference)findPreference(getString(R.string.pref_protocol_key));
+		protocol.setSummary(prefs.getString(getString(R.string.pref_protocol_key), ""));
+		EditTextPreference server = (EditTextPreference)findPreference(getString(R.string.pref_server_key));
+		server.setSummary(prefs.getString(getString(R.string.pref_server_key), ""));
+		EditTextPreference port = (EditTextPreference)findPreference(getString(R.string.pref_port_key));
+		port.setSummary(prefs.getString(getString(R.string.pref_port_key), ""));
+		EditTextPreference username = (EditTextPreference)findPreference(getString(R.string.pref_username_key));
+		username.setSummary(prefs.getString(getString(R.string.pref_username_key), ""));
+		EditTextPreference password = (EditTextPreference)findPreference(getString(R.string.pref_password_key));
+		password.setSummary(prefs.getString(getString(R.string.pref_password_key), ""));
+		ListPreference algorithm = (ListPreference)findPreference(getString(R.string.pref_algorithm_key));
 		algorithm.setSummary(algorithm.getEntry());
 	}
 }

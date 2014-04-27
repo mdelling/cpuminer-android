@@ -42,7 +42,7 @@ public class CPUMinerAppWidgetProvider extends AppWidgetProvider {
 	@Override
 	public void onReceive(Context context, Intent intent) {
 		Bundle extras = intent.getExtras();
-		if (extras.containsKey("com.mdelling.cpuminer.logEntry")) {
+		if (extras != null && extras.containsKey("com.mdelling.cpuminer.logEntry")) {
 			LogEntry entry = intent.getParcelableExtra("com.mdelling.cpuminer.logEntry");
 			lastEntry = entry;
 		}
@@ -64,7 +64,8 @@ public class CPUMinerAppWidgetProvider extends AppWidgetProvider {
 
 		// Get the server address
     	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-		String server = prefs.getString("pref_server", "");
+    	String server_key = context.getResources().getString(R.string.pref_server_key);
+		String server = prefs.getString(server_key, "");
 
 		// Generate the intent for switching to the app
 		Intent intent = new Intent("android.intent.action.MAIN");

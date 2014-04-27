@@ -112,10 +112,10 @@ public class MainActivity extends Activity {
 	protected void updateButtons()
 	{
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-		String server = prefs.getString("pref_server", "");
-		String port = prefs.getString("pref_port", "");
-		String username = prefs.getString("pref_username", "");
-		String password = prefs.getString("pref_password", "");
+		String server = prefs.getString(getString(R.string.pref_server_key), "");
+		String port = prefs.getString(getString(R.string.pref_port_key), "");
+		String username = prefs.getString(getString(R.string.pref_username_key), "");
+		String password = prefs.getString(getString(R.string.pref_password_key), "");
 
 		// Stop button should only be available if we're running
 		if (application.isRunning() && !application.isStopping())

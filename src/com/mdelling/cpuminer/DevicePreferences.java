@@ -1,5 +1,7 @@
 package com.mdelling.cpuminer;
 
+import java.util.Locale;
+
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
@@ -7,6 +9,7 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.CheckBoxPreference;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
@@ -19,6 +22,7 @@ public class DevicePreferences extends PreferenceFragment implements OnSharedPre
     	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.device_preferences);
+
         loadPreferences(prefs);
     }
 
@@ -48,6 +52,11 @@ public class DevicePreferences extends PreferenceFragment implements OnSharedPre
 	}
 
 	public void loadPreferences(SharedPreferences prefs) {
-		// Nothing to do at the moment
+		// Battery level option should only be enabled if we can run on battery
+		CheckBoxPreference battery = (CheckBoxPreference)findPreference(getString(R.string.pref_battery_key));
+		SliderPreference batteryLevel = (SliderPreference)findPreference(getString(R.string.pref_battery_level_key));
+		String currentBatteryLevel = String.format(Locale.getDefault(), "%d%%", (int)(batteryLevel.getValue() * 100));
+		batteryLevel.setEnabled(battery.isChecked());
+		batteryLevel.setSummary(currentBatteryLevel);
 	}
 }
