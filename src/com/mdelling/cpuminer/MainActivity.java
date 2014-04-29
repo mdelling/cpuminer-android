@@ -145,8 +145,6 @@ public class MainActivity extends Activity {
 		}
 
 		application.start();
-		this.updateButtons();
-		log("Started miner");
 	}
 
 	// Stop mining

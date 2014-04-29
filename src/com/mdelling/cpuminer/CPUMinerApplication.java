@@ -1,5 +1,8 @@
 package com.mdelling.cpuminer;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import android.app.Application;
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
@@ -24,28 +27,26 @@ public class CPUMinerApplication extends Application {
 	private String textLog = "";
 	private Thread worker = null;
 	private Thread logger = null;
+	private Lock stateLock = new ReentrantLock();
 	private PreferenceReceiver preferenceReceiver = null;
 	private BatteryReceiver batteryReceiver = null;
 
 	static {
-	    System.loadLibrary("curl");
-	    System.loadLibrary("neondetect");
+		System.loadLibrary("curl");
+		System.loadLibrary("neondetect");
 	}
 
 	@Override
 	public void onCreate()
 	{
 		super.onCreate();
-	    if (detectCPUHasNeon() == 0)
-	    {
-	    	System.loadLibrary("cpuminer");
-	    	appendToTextLog("Loading CPUMiner without NEON support");
-	    }
-	    else
-	    {
-	    	System.loadLibrary("cpuminer-neon");
-	    	appendToTextLog("Loading CPUMiner with NEON support");
-	    }
+		if (detectCPUHasNeon() == 0) {
+			System.loadLibrary("cpuminer");
+			appendToTextLog("Loading CPUMiner without NEON support");
+		} else {
+			System.loadLibrary("cpuminer-neon");
+			appendToTextLog("Loading CPUMiner with NEON support");
+		}
 	}
 
 	public String getTextLog()
@@ -69,6 +70,19 @@ public class CPUMinerApplication extends Application {
 
 	protected void start()
 	{
+		if (!stateLock.tryLock())
+			return;
+
+		try {
+			if (!isRunning() && !isStopping())
+				_start();
+		} finally {
+			stateLock.unlock();
+		}
+	}
+
+	private void _start()
+	{
 		// Register for battery status changes
 		IntentFilter batteryIntentFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
 		this.batteryReceiver = new BatteryReceiver();
@@ -81,13 +95,35 @@ public class CPUMinerApplication extends Application {
 
 		startWorker();
 		startLogger();
+		handleStateChange("Started miner");
 	}
 
 	protected void stop()
 	{
+		if (!stateLock.tryLock())
+			return;
+
+		try {
+			if (isRunning() && !isStopping())
+				_stop();
+		} finally {
+			stateLock.unlock();
+		}
+	}
+
+	private void _stop()
+	{
 		// Unregister for battery status changes
-		this.unregisterReceiver(batteryReceiver);
-		LocalBroadcastManager.getInstance(this).unregisterReceiver(preferenceReceiver);
+		if (batteryReceiver != null) {
+			unregisterReceiver(batteryReceiver);
+			batteryReceiver = null;
+		}
+
+		// Unregister for preference changes
+		if (preferenceReceiver != null) {
+			LocalBroadcastManager.getInstance(this).unregisterReceiver(preferenceReceiver);
+			preferenceReceiver = null;
+		}
 
 		new WaitForWorkers().execute();
 		stopMiner();
@@ -110,13 +146,18 @@ public class CPUMinerApplication extends Application {
 
 		@Override
 		protected Boolean doInBackground(Void... params) {
-			if (!isRunning() || isStopping())
+			stateLock.lock();
+
+			if (!isRunning()) {
+				stateLock.unlock();
 				return false;
+			}
 
 			waitForLogger();
 			publishProgress(1);
 			waitForWorker();
 			publishProgress(2);
+			stateLock.unlock();
 			return true;
 		}
 
@@ -200,9 +241,9 @@ public class CPUMinerApplication extends Application {
 
 	private void handleStateChange(String message)
 	{
-        Intent i = new Intent("com.mdelling.cpuminer.stateMessage");
-        i.putExtra("com.mdelling.cpuminer.stateEntry", message);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(i);
+		Intent i = new Intent("com.mdelling.cpuminer.stateMessage");
+		i.putExtra("com.mdelling.cpuminer.stateEntry", message);
+		LocalBroadcastManager.getInstance(this).sendBroadcast(i);
 	}
 
 	protected void handleLogEntry(LogEntry entry)
@@ -219,16 +260,16 @@ public class CPUMinerApplication extends Application {
 
 		// Update the activity
 		if (entry != null) {
-	        Intent i = new Intent("com.mdelling.cpuminer.logMessage");
-	        i.putExtra("com.mdelling.cpuminer.logEntry", entry);
-	        LocalBroadcastManager.getInstance(this).sendBroadcast(i);
+			Intent i = new Intent("com.mdelling.cpuminer.logMessage");
+			i.putExtra("com.mdelling.cpuminer.logEntry", entry);
+			LocalBroadcastManager.getInstance(this).sendBroadcast(i);
 		}
 	}
 
 	private boolean isWidgetActive() {
-	    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-	    String pref_widget = getString(R.string.pref_widget);
-	    return prefs.getBoolean(pref_widget, false);
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		String pref_widget = getString(R.string.pref_widget);
+		return prefs.getBoolean(pref_widget, false);
 	}
 
 	//=====================================================================
