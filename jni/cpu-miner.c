@@ -921,7 +921,7 @@ static void *stratum_thread(void *userdata)
 	while (workio_thread_ok) {
 		int failures = 0;
 
-		while (!stratum.curl) {
+		while (workio_thread_ok && !stratum.curl) {
 			pthread_mutex_lock(&g_work_lock);
 			g_work_time = 0;
 			pthread_mutex_unlock(&g_work_lock);
@@ -952,7 +952,7 @@ static void *stratum_thread(void *userdata)
 				restart_threads();
 			}
 		}
-		
+
 		if (!stratum_socket_full(&stratum, 120)) {
 			applog(LOG_ERR, "Stratum connection timed out");
 			s = NULL;
