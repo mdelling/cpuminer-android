@@ -433,7 +433,7 @@ static bool workio_get_work(struct workio_cmd *wc, CURL *curl)
 		return false;
 
 	/* obtain new work from bitcoin via JSON-RPC */
-	while (!get_upstream_work(curl, ret_work)) {
+	while (workio_thread_ok && !get_upstream_work(curl, ret_work)) {
 		if (unlikely((opt_retries >= 0) && (++failures > opt_retries))) {
 			applog(LOG_ERR, "json_rpc_call failed, terminating workio thread");
 			free(ret_work);
@@ -458,7 +458,7 @@ static bool workio_submit_work(struct workio_cmd *wc, CURL *curl)
 	int failures = 0;
 
 	/* submit solution to bitcoin via JSON-RPC */
-	while (!submit_upstream_work(curl, wc->u.work)) {
+	while (workio_thread_ok && !submit_upstream_work(curl, wc->u.work)) {
 		if (unlikely((opt_retries >= 0) && (++failures > opt_retries))) {
 			applog(LOG_ERR, "...terminating workio thread");
 			return false;
@@ -1383,8 +1383,6 @@ int cpuminer_start(int argc, char *argv[])
 	work_restart = NULL;
 	free(thr_info);
 	thr_info = NULL;
-	free(thr_info);
-	thr_info = NULL;
 	free(rpc_url);
 	rpc_url = NULL;
 	free(rpc_userpass);
@@ -1394,6 +1392,10 @@ int cpuminer_start(int argc, char *argv[])
 	free(rpc_pass);
 	rpc_pass = NULL;
 
+	/* Unset thread IDs */
+	longpoll_thr_id = -1;
+	stratum_thr_id = -1;
+
 	/* Mark that the next instance can start, and continue */
 	applog(LOG_INFO, "All threads ended. Exiting.");
 	workio_thread_ok = true;
@@ -1402,9 +1404,23 @@ int cpuminer_start(int argc, char *argv[])
 
 void stop_miner()
 {
+	int i;
 	workio_thread_ok = false;
-	if (thr_info)
+
+	if (thr_info) {
+		/* Tell the workio thread to stop */
 		tq_push(thr_info[work_thr_id].q, NULL);
+
+		/* Stop the network threads */
+		if (longpoll_thr_id != -1)
+			tq_push(thr_info[longpoll_thr_id].q, NULL);
+		if (stratum_thr_id != -1)
+			tq_push(thr_info[stratum_thr_id].q, NULL);
+
+		/* Stop the worker threads */
+		for (i = 0; i < opt_n_threads; i++)
+			tq_push(thr_info[i].q, NULL);
+	}
 }
 
 long get_accepted()
