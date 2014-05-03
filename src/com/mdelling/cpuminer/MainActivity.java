@@ -139,17 +139,14 @@ public class MainActivity extends Activity {
 
 	// Start mining
 	private void startMining() {
-		if (!application.shouldRunOnBattery()) {
-			log("Currently running on battery");
-			return;
-		}
-
 		application.start();
+		this.updateButtons();
 	}
 
 	// Stop mining
 	private void stopMining() {
 		application.stop();
+		this.updateButtons();
 	}
 
 	protected void log(String message)

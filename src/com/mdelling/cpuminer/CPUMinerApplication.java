@@ -6,9 +6,12 @@ import java.util.concurrent.locks.ReentrantLock;
 import android.app.Application;
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.BatteryManager;
 import android.preference.PreferenceManager;
@@ -49,18 +52,15 @@ public class CPUMinerApplication extends Application {
 		}
 	}
 
-	public String getTextLog()
-	{
+	public String getTextLog() {
 		return textLog;
 	}
 
-	public void appendToTextLog(String value)
-	{
+	public void appendToTextLog(String value) {
 		textLog = textLog + value + "\n";
 	}
 
-	public void clearTextLog()
-	{
+	public void clearTextLog() {
 		textLog = "";
 	}
 
@@ -68,8 +68,7 @@ public class CPUMinerApplication extends Application {
 	// Mining state
 	//=====================================================================
 
-	protected void start()
-	{
+	protected void start() {
 		if (!stateLock.tryLock())
 			return;
 
@@ -81,8 +80,22 @@ public class CPUMinerApplication extends Application {
 		}
 	}
 
-	private void _start()
-	{
+	private void _start() {
+		// Check that we can run on battery
+		if (!shouldRunOnBattery()) {
+			handleStateChange("Currently running on battery");
+			return;
+		}
+
+		// Check that we have a network connection
+		ConnectivityManager connManager = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo netInfo = connManager.getActiveNetworkInfo();
+
+		if (netInfo == null) {
+			handleStateChange("No network connection");
+			return;
+		}
+
 		// Register for battery status changes
 		IntentFilter batteryIntentFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
 		this.batteryReceiver = new BatteryReceiver();
@@ -98,8 +111,7 @@ public class CPUMinerApplication extends Application {
 		handleStateChange("Started miner");
 	}
 
-	protected void stop()
-	{
+	protected void stop() {
 		if (!stateLock.tryLock())
 			return;
 
@@ -111,8 +123,7 @@ public class CPUMinerApplication extends Application {
 		}
 	}
 
-	private void _stop()
-	{
+	private void _stop() {
 		// Unregister for battery status changes
 		if (batteryReceiver != null) {
 			unregisterReceiver(batteryReceiver);
@@ -131,13 +142,11 @@ public class CPUMinerApplication extends Application {
 		handleLogEntry(null);
 	}
 
-	protected boolean isRunning()
-	{
+	protected boolean isRunning() {
 		return hasWorker() || hasLogger();
 	}
 
-	protected boolean isStopping()
-	{
+	protected boolean isStopping() {
 		return !hasLogger() && hasWorker();
 	}
 
@@ -177,21 +186,18 @@ public class CPUMinerApplication extends Application {
 	// Worker management
 	//=====================================================================
 
-	private boolean hasWorker()
-	{
+	private boolean hasWorker() {
 		return worker != null && worker.getState() != Thread.State.TERMINATED;
 	}
 
-	private void startWorker()
-	{
+	private void startWorker() {
 		if (!hasWorker()) {
 			worker = new Thread(new CPUMinerRunnable(this));
 			worker.start();
 		}
 	}
 
-	private void waitForWorker()
-	{
+	private void waitForWorker() {
 		if (!hasWorker())
 			return;
 
@@ -208,21 +214,18 @@ public class CPUMinerApplication extends Application {
 	// Logger management
 	//=====================================================================
 
-	private boolean hasLogger()
-	{
+	private boolean hasLogger() {
 		return logger != null && logger.getState() != Thread.State.TERMINATED;
 	}
 
-	private void startLogger()
-	{
+	private void startLogger() {
 		if (!hasLogger()) {
 			logger = new Thread(new LoggerRunnable(this));
 			logger.start();
 		}
 	}
 
-	private void waitForLogger()
-	{
+	private void waitForLogger() {
 		if (!hasLogger())
 			return;
 
@@ -239,15 +242,13 @@ public class CPUMinerApplication extends Application {
 	// Application updates
 	//=====================================================================
 
-	private void handleStateChange(String message)
-	{
+	private void handleStateChange(String message) {
 		Intent i = new Intent("com.mdelling.cpuminer.stateMessage");
 		i.putExtra("com.mdelling.cpuminer.stateEntry", message);
 		LocalBroadcastManager.getInstance(this).sendBroadcast(i);
 	}
 
-	protected void handleLogEntry(LogEntry entry)
-	{
+	protected void handleLogEntry(LogEntry entry) {
 		// Tell the widget something has happened
 		if (isWidgetActive()) {
 			Intent intent = new Intent(this, CPUMinerAppWidgetProvider.class);
@@ -276,20 +277,17 @@ public class CPUMinerApplication extends Application {
 	// Battery management
 	//=====================================================================
 
-	private Intent batteryStatus()
-	{
+	private Intent batteryStatus() {
 		// Check whether we should start given current power settings
 		IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
 		return this.registerReceiver(null, ifilter);
 	}
 
-	protected boolean shouldRunOnBattery()
-	{
+	protected boolean shouldRunOnBattery() {
 		return shouldRunOnBattery(batteryStatus());
 	}
 
-	protected boolean shouldRunOnBattery(Intent batteryStatus)
-	{
+	protected boolean shouldRunOnBattery(Intent batteryStatus) {
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		boolean useBattery = prefs.getBoolean(getString(R.string.pref_battery_key), false);
 		float useBatteryLevel = prefs.getFloat(getString(R.string.pref_battery_level_key), 0);
@@ -308,13 +306,11 @@ public class CPUMinerApplication extends Application {
 	}
 
 	// Stop mining if we just switched to battery and aren't supposed to use it
-	protected void handleBatteryEvent()
-	{
+	protected void handleBatteryEvent() {
 		handleBatteryEvent(batteryStatus());
 	}
 
-	protected void handleBatteryEvent(Intent batteryStatus)
-	{
+	protected void handleBatteryEvent(Intent batteryStatus) {
 		if (!shouldRunOnBattery(batteryStatus) && hasLogger()) {
 			stop();
 		}
